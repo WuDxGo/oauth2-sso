@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" 
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.oauth.server.mapper.UserMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.oauth.server.entity.User">
+        <id column="id" property="id"/>
+        <result column="username" property="username"/>
+        <result column="password" property="password"/>
+        <result column="email" property="email"/>
+        <result column="phone" property="phone"/>
+        <result column="avatar" property="avatar"/>
+        <result column="nickname" property="nickname"/>
+        <result column="gender" property="gender"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <!-- 根据用户名查询用户 -->
+    <select id="findByUsername" resultMap="BaseResultMap">
+        SELECT * FROM sys_user WHERE username = #{username} AND status = 1
+    </select>
+
+    <!-- 根据 ID 查询用户 -->
+    <select id="findById" resultMap="BaseResultMap">
+        SELECT * FROM sys_user WHERE id = #{id}
+    </select>
+
+    <!-- 插入用户 -->
+    <insert id="insert" parameterType="com.example.oauth.server.entity.User" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO sys_user (
+            username, password, email, phone, avatar, nickname, gender, status, create_time, update_time
+        ) VALUES (
+            #{username}, #{password}, #{email}, #{phone}, #{avatar}, #{nickname}, #{gender}, #{status}, NOW(), NOW()
+        )
+    </insert>
+
+    <!-- 更新用户 -->
+    <update id="update" parameterType="com.example.oauth.server.entity.User">
+        UPDATE sys_user SET
+            username = #{username},
+            email = #{email},
+            phone = #{phone},
+            avatar = #{avatar},
+            nickname = #{nickname},
+            gender = #{gender},
+            status = #{status},
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除用户 -->
+    <delete id="deleteById">
+        DELETE FROM sys_user WHERE id = #{id}
+    </delete>
+</mapper>

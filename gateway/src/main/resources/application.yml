@@ -1,0 +1,73 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: gateway
+  
+  cloud:
+    gateway:
+      routes:
+        # 订单服务路由
+        - id: order-service
+          uri: http://localhost:8082
+          predicates:
+            - Path=/api/orders/**
+          filters:
+            - StripPrefix=1
+        
+        # 用户服务路由
+        - id: user-service
+          uri: http://localhost:8083
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - StripPrefix=1
+      
+      default-filters:
+        # 添加 JWT Token 到请求头
+        - PreserveHostHeader
+      
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+  
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      database: 0
+      timeout: 5000ms
+  
+  security:
+    oauth2:
+      client:
+        provider:
+          oauth-server:
+            issuer-uri: http://localhost:8080
+            authorization-uri: http://localhost:8080/oauth2/authorize
+            token-uri: http://localhost:8080/oauth2/token
+            user-info-uri: http://localhost:8080/userinfo
+            jwk-set-uri: http://localhost:8080/.well-known/jwks.json
+            user-name-attribute: sub
+        registration:
+          gateway-client:
+            provider: oauth-server
+            client-id: gateway-client
+            client-secret: gateway-secret
+            authorization-grant-type: authorization_code
+            redirect-uri: "http://localhost:8081/login/oauth2/code/gateway-client"
+            scope:
+              - openid
+              - profile
+              - read
+              - write
+
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.security: DEBUG
