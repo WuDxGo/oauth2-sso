@@ -1,91 +1,103 @@
-package com.example.oauth.user.controller;
+package com.example.oauth.user.controller; // 定义包路径，用于组织和管理 Java 用户控制器类
 
-import com.example.oauth.common.result.Result;
-import com.example.oauth.user.entity.User;
-import com.example.oauth.user.service.UserService;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import com.example.oauth.common.result.Result; // 导入统一返回结果类
+import com.example.oauth.user.entity.User; // 导入用户实体类
+import com.example.oauth.user.service.UserService; // 导入用户服务类
+import lombok.RequiredArgsConstructor; // 导入 Lombok 的 RequiredArgsConstructor 注解，自动生成构造函数
+import org.springframework.security.access.prepost.PreAuthorize; // 导入权限控制注解，用于方法级安全控制
+import org.springframework.web.bind.annotation.*; // 导入 RESTful 注解（GetMapping、PostMapping 等）
 
-import java.util.List;
+import java.util.List; // 导入 List 列表接口
 
 /**
  * 用户控制器
+ * 处理用户相关的 HTTP 请求
  */
-@RestController
-@RequestMapping("/users")
-@RequiredArgsConstructor
-public class UserController {
+@RestController // 标识此类为 RESTful 控制器，返回 JSON 数据而非视图
+@RequestMapping("/users") // 设置基础请求路径为/users
+@RequiredArgsConstructor // Lombok 注解，生成包含所有 final 字段的构造函数
+public class UserController { // 定义用户控制器类
 
-    private final UserService userService;
+    private final UserService userService; // 注入用户服务实例
 
     /**
      * 获取所有用户
+     * @return Result<List<User>> 包含用户列表的统一响应结果
      */
-    @GetMapping
-    @PreAuthorize("hasAuthority('read')")
-    public Result<List<User>> getAllUsers() {
-        List<User> users = userService.findAll();
-        return Result.success(users);
+    @GetMapping // 映射 GET 请求到根路径（/users）
+    @PreAuthorize("hasAuthority('read')") // 需要"read"权限才能访问此方法
+    public Result<List<User>> getAllUsers() { // 获取所有用户的方法
+        List<User> users = userService.findAll(); // 调用服务层查询所有用户
+        return Result.success(users); // 返回成功响应，包含用户列表
     }
 
     /**
      * 根据 ID 获取用户
+     * @param id 用户 ID（从 URL 路径中提取）
+     * @return Result<User> 包含用户数据的统一响应结果
      */
-    @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('read')")
-    public Result<User> getUserById(@PathVariable Long id) {
-        User user = userService.findById(id);
+    @GetMapping("/{id}") // 映射 GET 请求到/users/{id}路径
+    @PreAuthorize("hasAuthority('read')") // 需要"read"权限才能访问此方法
+    public Result<User> getUserById(@PathVariable Long id) { // 根据 ID 获取用户的方法
+        User user = userService.findById(id); // 调用服务层根据 ID 查询用户
         if (user == null) {
-            return Result.error(404, "用户不存在");
+            return Result.error(404, "用户不存在"); // 如果用户不存在，返回 404 错误
         }
-        return Result.success(user);
+        return Result.success(user); // 返回成功响应，包含用户数据
     }
 
     /**
      * 获取当前登录用户信息
+     * @return Result<User> 包含当前用户信息的统一响应结果
      */
-    @GetMapping("/me")
-    @PreAuthorize("hasAuthority('read')")
-    public Result<User> getCurrentUser() {
+    @GetMapping("/me") // 映射 GET 请求到/users/me 路径
+    @PreAuthorize("hasAuthority('read')") // 需要"read"权限才能访问此方法
+    public Result<User> getCurrentUser() { // 获取当前用户的方法
         // 从 JWT Token 中获取用户信息
         String username = org.springframework.security.core.context.SecurityContextHolder.getContext()
-                .getAuthentication().getName();
-        User user = userService.findByUsername(username);
+                .getAuthentication().getName(); // 从 Spring Security 上下文中获取当前登录用户名
+        User user = userService.findByUsername(username); // 调用服务层根据用户名查询用户
         if (user == null) {
-            return Result.error(404, "用户不存在");
+            return Result.error(404, "用户不存在"); // 如果用户不存在，返回 404 错误
         }
-        return Result.success(user);
+        return Result.success(user); // 返回成功响应，包含用户数据
     }
 
     /**
      * 创建用户
+     * @param user 用户对象（从请求体中读取）
+     * @return Result<User> 包含已创建用户的统一响应结果
      */
-    @PostMapping
-    @PreAuthorize("hasAuthority('write')")
-    public Result<User> createUser(@RequestBody User user) {
-        User created = userService.create(user);
-        return Result.success("创建成功", created);
+    @PostMapping // 映射 POST 请求到根路径（/users）
+    @PreAuthorize("hasAuthority('write')") // 需要"write"权限才能访问此方法
+    public Result<User> createUser(@RequestBody User user) { // 创建用户的方法
+        User created = userService.create(user); // 调用服务层创建用户
+        return Result.success("创建成功", created); // 返回成功响应，包含成功消息和已创建的用户
     }
 
     /**
      * 更新用户
+     * @param id 用户 ID（从 URL 路径中提取）
+     * @param user 新的用户数据（从请求体中读取）
+     * @return Result<User> 包含已更新用户的统一响应结果
      */
-    @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('write')")
-    public Result<User> updateUser(@PathVariable Long id, @RequestBody User user) {
-        user.setId(id);
-        User updated = userService.update(user);
-        return Result.success("更新成功", updated);
+    @PutMapping("/{id}") // 映射 PUT 请求到/users/{id}路径
+    @PreAuthorize("hasAuthority('write')") // 需要"write"权限才能访问此方法
+    public Result<User> updateUser(@PathVariable Long id, @RequestBody User user) { // 更新用户的方法
+        user.setId(id); // 设置用户 ID
+        User updated = userService.update(user); // 调用服务层更新用户
+        return Result.success("更新成功", updated); // 返回成功响应，包含成功消息和已更新的用户
     }
 
     /**
      * 删除用户
+     * @param id 用户 ID（从 URL 路径中提取）
+     * @return Result<Void> 删除操作的统一响应结果
      */
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('write')")
-    public Result<Void> deleteUser(@PathVariable Long id) {
-        userService.deleteById(id);
-        return Result.success("删除成功", null);
+    @DeleteMapping("/{id}") // 映射 DELETE 请求到/users/{id}路径
+    @PreAuthorize("hasAuthority('write')") // 需要"write"权限才能访问此方法
+    public Result<Void> deleteUser(@PathVariable Long id) { // 删除用户的方法
+        userService.deleteById(id); // 调用服务层删除用户
+        return Result.success("删除成功", null); // 返回成功响应，表示删除成功
     }
 }
