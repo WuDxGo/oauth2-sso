@@ -36,7 +36,7 @@ public class SecurityConfig { // 定义网关安全配置类
                 .logoutUrl("/logout") // 设置登出 URL 为/logout
         )
         // CSRF 配置（网关不需要），因为网关主要负责路由转发和认证
-        .csrf(csrf -> csrf.disable()); // 禁用 CSRF 保护，因为网关层主要处理 Token 认证
+        .csrf(ServerHttpSecurity.CsrfSpec::disable); // 禁用 CSRF 保护，因为网关层主要处理 Token 认证
 
         return http.build(); // 构建并返回 SecurityWebFilterChain 实例
     }
