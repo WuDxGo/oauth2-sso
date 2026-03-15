@@ -1,5 +1,6 @@
 package com.example.oauth.order.controller; // 定义包路径，用于组织和管理 Java 订单控制器类
 
+import com.example.oauth.common.controller.BaseController; // 导入基础控制器类
 import com.example.oauth.common.result.Result; // 导入统一返回结果类
 import com.example.oauth.order.entity.Order; // 导入订单实体类
 import com.example.oauth.order.service.OrderService; // 导入订单服务类
@@ -16,7 +17,7 @@ import java.util.List; // 导入 List 列表接口
 @RestController // 标识此类为 RESTful 控制器，返回 JSON 数据而非视图
 @RequestMapping("/orders") // 设置基础请求路径为/orders
 @RequiredArgsConstructor // Lombok 注解，生成包含所有 final 字段的构造函数
-public class OrderController { // 定义订单控制器类
+public class OrderController extends BaseController { // 定义订单控制器类，继承基础控制器
 
     private final OrderService orderService; // 注入订单服务实例
 
@@ -40,10 +41,7 @@ public class OrderController { // 定义订单控制器类
     @PreAuthorize("hasAuthority('read')") // 需要"read"权限才能访问此方法
     public Result<Order> getOrderById(@PathVariable Long id) { // 根据 ID 获取订单的方法
         Order order = orderService.findById(id); // 调用服务层根据 ID 查询订单
-        if (order == null) {
-            return Result.error(404, "订单不存在"); // 如果订单不存在，返回 404 错误
-        }
-        return Result.success(order); // 返回成功响应，包含订单数据
+        return handleNotNull(order, "订单不存在"); // 使用基类方法处理 null 判断并返回响应
     }
 
     /**
@@ -54,8 +52,7 @@ public class OrderController { // 定义订单控制器类
     @PostMapping // 映射 POST 请求到根路径（/orders）
     @PreAuthorize("hasAuthority('write')") // 需要"write"权限才能访问此方法
     public Result<Order> createOrder(@RequestBody Order order) { // 创建订单的方法
-        Order created = orderService.create(order); // 调用服务层创建订单
-        return Result.success("创建成功", created); // 返回成功响应，包含成功消息和已创建的订单
+        return handleSuccess(() -> orderService.create(order), "创建成功"); // 使用基类方法处理业务逻辑并返回响应
     }
 
     /**
@@ -68,8 +65,7 @@ public class OrderController { // 定义订单控制器类
     @PreAuthorize("hasAuthority('write')") // 需要"write"权限才能访问此方法
     public Result<Order> updateOrder(@PathVariable Long id, @RequestBody Order order) { // 更新订单的方法
         order.setId(id); // 设置订单 ID
-        Order updated = orderService.update(order); // 调用服务层更新订单
-        return Result.success("更新成功", updated); // 返回成功响应，包含成功消息和已更新的订单
+        return handleSuccess(() -> orderService.update(order), "更新成功"); // 使用基类方法处理业务逻辑并返回响应
     }
 
     /**

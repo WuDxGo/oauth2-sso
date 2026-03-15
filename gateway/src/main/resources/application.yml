@@ -14,6 +14,7 @@ spring:
           predicates:
             - Path=/api/orders/**
           filters:
+            - TokenRelay
             - StripPrefix=1
         
         # 用户服务路由
@@ -22,6 +23,7 @@ spring:
           predicates:
             - Path=/api/users/**
           filters:
+            - TokenRelay
             - StripPrefix=1
       
       default-filters:

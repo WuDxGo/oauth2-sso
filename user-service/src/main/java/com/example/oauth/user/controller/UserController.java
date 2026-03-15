@@ -1,5 +1,6 @@
 package com.example.oauth.user.controller; // 定义包路径，用于组织和管理 Java 用户控制器类
 
+import com.example.oauth.common.controller.BaseController; // 导入基础控制器类
 import com.example.oauth.common.result.Result; // 导入统一返回结果类
 import com.example.oauth.user.entity.User; // 导入用户实体类
 import com.example.oauth.user.service.UserService; // 导入用户服务类
@@ -16,7 +17,7 @@ import java.util.List; // 导入 List 列表接口
 @RestController // 标识此类为 RESTful 控制器，返回 JSON 数据而非视图
 @RequestMapping("/users") // 设置基础请求路径为/users
 @RequiredArgsConstructor // Lombok 注解，生成包含所有 final 字段的构造函数
-public class UserController { // 定义用户控制器类
+public class UserController extends BaseController { // 定义用户控制器类，继承基础控制器
 
     private final UserService userService; // 注入用户服务实例
 
@@ -40,10 +41,7 @@ public class UserController { // 定义用户控制器类
     @PreAuthorize("hasAuthority('read')") // 需要"read"权限才能访问此方法
     public Result<User> getUserById(@PathVariable Long id) { // 根据 ID 获取用户的方法
         User user = userService.findById(id); // 调用服务层根据 ID 查询用户
-        if (user == null) {
-            return Result.error(404, "用户不存在"); // 如果用户不存在，返回 404 错误
-        }
-        return Result.success(user); // 返回成功响应，包含用户数据
+        return handleNotNull(user, "用户不存在"); // 使用基类方法处理 null 判断并返回响应
     }
 
     /**
@@ -54,13 +52,9 @@ public class UserController { // 定义用户控制器类
     @PreAuthorize("hasAuthority('read')") // 需要"read"权限才能访问此方法
     public Result<User> getCurrentUser() { // 获取当前用户的方法
         // 从 JWT Token 中获取用户信息
-        String username = org.springframework.security.core.context.SecurityContextHolder.getContext()
-                .getAuthentication().getName(); // 从 Spring Security 上下文中获取当前登录用户名
+        String username = getCurrentUsername(); // 使用基类方法获取当前登录用户名
         User user = userService.findByUsername(username); // 调用服务层根据用户名查询用户
-        if (user == null) {
-            return Result.error(404, "用户不存在"); // 如果用户不存在，返回 404 错误
-        }
-        return Result.success(user); // 返回成功响应，包含用户数据
+        return handleNotNull(user, "用户不存在"); // 使用基类方法处理 null 判断并返回响应
     }
 
     /**
@@ -71,8 +65,7 @@ public class UserController { // 定义用户控制器类
     @PostMapping // 映射 POST 请求到根路径（/users）
     @PreAuthorize("hasAuthority('write')") // 需要"write"权限才能访问此方法
     public Result<User> createUser(@RequestBody User user) { // 创建用户的方法
-        User created = userService.create(user); // 调用服务层创建用户
-        return Result.success("创建成功", created); // 返回成功响应，包含成功消息和已创建的用户
+        return handleSuccess(() -> userService.create(user), "创建成功"); // 使用基类方法处理业务逻辑并返回响应
     }
 
     /**
@@ -85,8 +78,7 @@ public class UserController { // 定义用户控制器类
     @PreAuthorize("hasAuthority('write')") // 需要"write"权限才能访问此方法
     public Result<User> updateUser(@PathVariable Long id, @RequestBody User user) { // 更新用户的方法
         user.setId(id); // 设置用户 ID
-        User updated = userService.update(user); // 调用服务层更新用户
-        return Result.success("更新成功", updated); // 返回成功响应，包含成功消息和已更新的用户
+        return handleSuccess(() -> userService.update(user), "更新成功"); // 使用基类方法处理业务逻辑并返回响应
     }
 
     /**

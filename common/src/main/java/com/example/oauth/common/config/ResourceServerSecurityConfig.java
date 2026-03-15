@@ -39,7 +39,7 @@ public class ResourceServerSecurityConfig { // 定义资源服务器安全配置
     @Bean // 标记此方法返回的对象将注册为 Spring 容器中的 Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() { // 创建 JWT 认证转换器方法
         JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter(); // 创建 JWT 授权转换器实例，用于从 JWT 中提取权限信息
-        grantedAuthoritiesConverter.setAuthorityPrefix("ROLE_"); // 设置权限前缀为"ROLE_"，Spring Security 会在权限前自动添加此前缀
+        grantedAuthoritiesConverter.setAuthorityPrefix(""); // 不加前缀，使 scope（read/write）直接作为权限名，与 @PreAuthorize("hasAuthority('read')") 匹配
         grantedAuthoritiesConverter.setAuthoritiesClaimName("scope"); // 设置权限声明的名称为"scope"，从 JWT 的 scope 字段中提取权限
 
         JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter(); // 创建 JWT 认证转换器实例
