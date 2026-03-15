@@ -25,7 +25,7 @@ spring:
             - StripPrefix=1
       
       default-filters:
-        # 添加 JWT Token 到请求头
+        # 保留原始 Host 头
         - PreserveHostHeader
       
       globalcors:
