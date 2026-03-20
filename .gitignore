@@ -109,3 +109,9 @@ dump.rdb
 *.swp
 *.swo
 *~
+
+# Frontend - Node.js
+frontend/node_modules/
+frontend/dist/
+frontend/.npm/
+frontend/package-lock.json

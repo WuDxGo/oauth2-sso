@@ -8,6 +8,13 @@ spring:
   cloud:
     gateway:
       routes:
+        # 登录路由（直接转发到 OAuth2 服务器，不需要认证）
+        - id: oauth-login
+          uri: http://localhost:8080
+          predicates:
+            - Path=/api/login
+          # 不使用 StripPrefix，因为 OAuth2 服务器的控制器路径是 /api/login
+
         # 订单服务路由
         - id: order-service
           uri: http://localhost:8082
@@ -16,7 +23,7 @@ spring:
           filters:
             - TokenRelay
             - StripPrefix=1
-        
+
         # 用户服务路由
         - id: user-service
           uri: http://localhost:8083

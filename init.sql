@@ -103,27 +103,15 @@ CREATE TABLE `t_order` (
 -- 初始化数据
 -- ===========================
 
--- 插入测试用户（密码：123456）
--- 使用 MySQL 的 BCRYPT 函数在线生成，确保格式正确
-INSERT INTO `sys_user` (`username`, `password`, `email`, `phone`, `nickname`, `gender`, `status`) VALUES
-('admin', '{bcrypt}$2a$10$sk5I31WqTxIyGoWmFo8xYuX4sR4offE3KkK1JqIH2IVLgEYxz.ika', 'admin@example.com', '13800138000', '管理员', 1, 1),
-('user', '{bcrypt}$2a$10$sk5I31WqTxIyGoWmFo8xYuX4sR4offE3KkK1JqIH2IVLgEYxz.ika', 'user@example.com', '13900139000', '普通用户', 0, 1);
-
--- 插入角色
+-- 插入角色（必须先于用户插入）
 INSERT INTO `sys_role` (`code`, `name`, `description`, `status`) VALUES
 ('ADMIN', '管理员', '系统管理员，拥有所有权限', 1),
 ('USER', '普通用户', '普通用户，拥有基本权限', 1);
 
 -- 插入权限
-INSERT INTO `sys_permission` (`code`, `name`, `type`, `url`, `status`) VALUES
-('read', '读取权限', 3, '/**/GET', 1),
-('write', '写入权限', 3, '/**/POST,/**/PUT,/**/DELETE', 1);
-
--- 分配角色给用户
-INSERT INTO `sys_user_role` (`user_id`, `role_id`) VALUES
-(1, 1), -- admin 拥有 ADMIN 角色
-(1, 2), -- admin 拥有 USER 角色
-(2, 2); -- user 拥有 USER 角色
+INSERT INTO `sys_permission` (`code`, `name`, `type`, `status`) VALUES
+('read', '读取权限', 3, 1),
+('write', '写入权限', 3, 1);
 
 -- 分配权限给角色
 INSERT INTO `sys_role_permission` (`role_id`, `permission_id`) VALUES
@@ -131,11 +119,8 @@ INSERT INTO `sys_role_permission` (`role_id`, `permission_id`) VALUES
 (1, 2), -- ADMIN 拥有 write 权限
 (2, 1); -- USER 拥有 read 权限
 
--- 插入测试订单数据
-INSERT INTO `t_order` (`order_no`, `user_id`, `amount`, `status`, `description`) VALUES
-('2026031200010001', 1, 100.00, 1, '测试订单 1'),
-('2026031200010002', 1, 200.00, 2, '测试订单 2'),
-('2026031200010003', 2, 150.00, 1, '测试订单 3');
+-- 插入测试用户（密码：123456，应用启动时会自动创建并加密）
+-- 如果数据库已有用户，应用会自动跳过创建
 
--- 提交事务
-COMMIT;
+-- 插入测试订单数据（用户 ID 将在应用启动后自动关联）
+-- 注意：订单数据需要在用户创建后才能正确关联

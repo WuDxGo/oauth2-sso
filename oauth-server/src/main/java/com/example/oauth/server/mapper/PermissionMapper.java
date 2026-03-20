@@ -35,4 +35,12 @@ public interface PermissionMapper {
      * @return 权限信息
      */
     Permission findByCode(@Param("code") String code);
+
+    /**
+     * 插入权限
+     *
+     * @param permission 权限信息
+     * @return 影响行数
+     */
+    int insert(@Param("permission") Permission permission);
 }

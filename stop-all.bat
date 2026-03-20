@@ -1,23 +1,37 @@
 @echo off
 chcp 65001 >nul
 echo ========================================
-echo    OAuth2 SSO 系统 - 停止所有服务
+echo   OAuth2 SSO 前后端分离系统 - 停止脚本
 echo ========================================
 echo.
 
 echo 正在停止所有服务...
 echo.
 
-REM 停止 Java 进程
-taskkill /F /FI "WindowTitle eq OAuth2 Server*" 2>nul
-taskkill /F /FI "WindowTitle eq Gateway*" 2>nul
-taskkill /F /FI "WindowTitle eq Order Service*" 2>nul
-taskkill /F /FI "WindowTitle eq User Service*" 2>nul
+echo [1/4] 停止用户服务...
+taskkill /F /FI "WINDOWTITLE eq User Service*" 2>nul
+timeout /t 2 /nobreak >nul
 
-REM 也通过进程名停止
-taskkill /F /IM java.exe 2>nul
+echo [2/4] 停止订单服务...
+taskkill /F /FI "WINDOWTITLE eq Order Service*" 2>nul
+timeout /t 2 /nobreak >nul
+
+echo [3/4] 停止 API 网关...
+taskkill /F /FI "WINDOWTITLE eq API Gateway*" 2>nul
+timeout /t 2 /nobreak >nul
+
+echo [4/4] 停止 OAuth2 认证服务器...
+taskkill /F /FI "WINDOWTITLE eq OAuth2 Server*" 2>nul
+timeout /t 2 /nobreak >nul
 
 echo.
-echo √ 所有服务已停止！
+echo [前端] 停止前端开发服务器...
+taskkill /F /FI "WINDOWTITLE eq Frontend Dev Server*" 2>nul
+timeout /t 2 /nobreak >nul
+
+echo.
+echo ========================================
+echo   所有服务已停止！
+echo ========================================
 echo.
 pause

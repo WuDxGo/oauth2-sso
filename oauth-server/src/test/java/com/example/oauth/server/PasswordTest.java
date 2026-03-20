@@ -3,29 +3,19 @@ package com.example.oauth.server;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-/**
- * BCrypt 密码生成测试工具
- */
 public class PasswordTest {
-
     public static void main(String[] args) {
-        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-        
-        // 生成 123456 的 BCrypt 哈希
+        PasswordEncoder encoder = new BCryptPasswordEncoder();
         String rawPassword = "123456";
-        String encodedPassword = passwordEncoder.encode(rawPassword);
+        String encodedPassword = "{bcrypt}$2a$10$sk5I31WqTxIyGoWmFo8xYuX4sR4offE3KkK1JqIH2IVLgEYxz.ika";
         
-        System.out.println("原始密码: " + rawPassword);
-        System.out.println("BCrypt 加密后: " + encodedPassword);
-        System.out.println();
+        System.out.println("Raw password: " + rawPassword);
+        System.out.println("Encoded password: " + encodedPassword);
+        System.out.println("Matches: " + encoder.matches(rawPassword, encodedPassword));
         
-        // 验证密码是否匹配
-        boolean matches = passwordEncoder.matches(rawPassword, encodedPassword);
-        System.out.println("密码验证结果: " + matches);
-        
-        // 输出 SQL 语句
-        System.out.println();
-        System.out.println("SQL 更新语句:");
-        System.out.println("UPDATE sys_user SET password = '" + encodedPassword + "' WHERE username IN ('admin', 'user');");
+        // Generate new password
+        String newEncoded = encoder.encode(rawPassword);
+        System.out.println("New encoded: " + newEncoded);
+        System.out.println("New matches: " + encoder.matches(rawPassword, newEncoded));
     }
 }
