@@ -1,0 +1,200 @@
+package com.example.oauth.server.service;
+
+import com.example.oauth.server.repository.JdbcRegisteredClientRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.core.AuthorizationGrantType;
+import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
+import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
+import org.springframework.security.oauth2.server.authorization.settings.ClientSettings;
+import org.springframework.security.oauth2.server.authorization.settings.TokenSettings;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+/**
+ * OAuth2 客户端自动注册服务
+ * 应用启动时自动注册配置文件中定义的客户端
+ */
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class OAuth2ClientAutoRegisterService implements ApplicationRunner {
+
+    private final OAuth2ClientProperties clientProperties;
+    private final JdbcRegisteredClientRepository clientRepository;
+    private final PasswordEncoder passwordEncoder;
+
+    @Override
+    @Transactional
+    public void run(ApplicationArguments args) {
+        if (!clientProperties.isAutoRegister()) {
+            log.info("OAuth2 客户端自动注册已禁用");
+            return;
+        }
+
+        // 检查数据库中是否已有客户端
+        List<RegisteredClient> existingClients = clientRepository.findAll();
+        if (!existingClients.isEmpty()) {
+            log.info("数据库中已有 {} 个客户端，跳过默认客户端创建", existingClients.size());
+            return;
+        }
+
+        log.info("数据库为空，开始创建默认 OAuth2 客户端...");
+        
+        // 创建默认客户端
+        createDefaultClients();
+        
+        log.info("OAuth2 默认客户端创建完成");
+    }
+
+    /**
+     * 创建默认客户端
+     */
+    @Transactional
+    public void createDefaultClients() {
+        List<OAuth2ClientProperties.ClientConfig> defaultClients = getDefaultClientConfigs();
+        
+        for (OAuth2ClientProperties.ClientConfig config : defaultClients) {
+            try {
+                registerClient(config);
+                log.info("默认客户端 [{}] 创建成功", config.getClientId());
+            } catch (Exception e) {
+                log.error("默认客户端 [{}] 创建失败：{}", config.getClientId(), e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * 获取默认客户端配置
+     */
+    private List<OAuth2ClientProperties.ClientConfig> getDefaultClientConfigs() {
+        List<OAuth2ClientProperties.ClientConfig> clients = new ArrayList<>();
+        
+        // 网关客户端
+        OAuth2ClientProperties.ClientConfig gateway = new OAuth2ClientProperties.ClientConfig();
+        gateway.setClientId("gateway-client");
+        gateway.setClientName("网关客户端");
+        gateway.setClientSecret("gateway-secret");
+        gateway.setAuthenticationMethods("client_secret_basic");
+        gateway.setGrantTypes("password,authorization_code,refresh_token");
+        gateway.setRedirectUris("http://localhost:8081/login/oauth2/code/gateway-client");
+        gateway.setScopes("openid,profile,read,write");
+        gateway.setAccessTokenTtl(7200L);
+        gateway.setRefreshTokenTtl(604800L);
+        gateway.setRequireConsent(false);
+        clients.add(gateway);
+        
+        // 订单服务客户端
+        OAuth2ClientProperties.ClientConfig order = new OAuth2ClientProperties.ClientConfig();
+        order.setClientId("order-service");
+        order.setClientName("订单服务");
+        order.setClientSecret("order-secret");
+        order.setAuthenticationMethods("client_secret_basic");
+        order.setGrantTypes("client_credentials");
+        order.setScopes("read,write");
+        order.setAccessTokenTtl(7200L);
+        order.setRefreshTokenTtl(604800L);
+        order.setRequireConsent(true);
+        clients.add(order);
+        
+        // 用户服务客户端
+        OAuth2ClientProperties.ClientConfig user = new OAuth2ClientProperties.ClientConfig();
+        user.setClientId("user-service");
+        user.setClientName("用户服务");
+        user.setClientSecret("user-secret");
+        user.setAuthenticationMethods("client_secret_basic");
+        user.setGrantTypes("client_credentials");
+        user.setScopes("read,write");
+        user.setAccessTokenTtl(7200L);
+        user.setRefreshTokenTtl(604800L);
+        user.setRequireConsent(true);
+        clients.add(user);
+        
+        return clients;
+    }
+
+    /**
+     * 注册单个客户端
+     */
+    @Transactional
+    public void registerClient(OAuth2ClientProperties.ClientConfig config) {
+        // 检查客户端是否已存在
+        RegisteredClient existingClient = clientRepository.findByClientId(config.getClientId());
+        
+        if (existingClient != null) {
+            log.info("客户端 [{}] 已存在，跳过注册", config.getClientId());
+            return;
+        }
+
+        // 构建 RegisteredClient
+        RegisteredClient.Builder builder = RegisteredClient.withId(java.util.UUID.randomUUID().toString())
+                .clientId(config.getClientId())
+                .clientName(config.getClientName() != null ? config.getClientName() : config.getClientId())
+                .clientSecret(passwordEncoder.encode(config.getClientSecret()));
+
+        // 添加认证方式
+        Set<ClientAuthenticationMethod> authMethods = parseCommaSeparatedValues(config.getAuthenticationMethods())
+                .stream()
+                .map(ClientAuthenticationMethod::new)
+                .collect(Collectors.toSet());
+        builder.clientAuthenticationMethods(methods -> methods.addAll(authMethods));
+
+        // 添加授权类型
+        Set<AuthorizationGrantType> grantTypes = parseCommaSeparatedValues(config.getGrantTypes())
+                .stream()
+                .map(AuthorizationGrantType::new)
+                .collect(Collectors.toSet());
+        builder.authorizationGrantTypes(types -> types.addAll(grantTypes));
+
+        // 添加重定向 URI
+        if (StringUtils.hasText(config.getRedirectUris())) {
+            parseCommaSeparatedValues(config.getRedirectUris())
+                    .forEach(builder::redirectUri);
+        }
+
+        // 添加 scopes
+        parseCommaSeparatedValues(config.getScopes())
+                .forEach(builder::scope);
+
+        // 配置 Token 设置
+        TokenSettings tokenSettings = TokenSettings.builder()
+                .accessTokenTimeToLive(Duration.ofSeconds(config.getAccessTokenTtl()))
+                .refreshTokenTimeToLive(Duration.ofSeconds(config.getRefreshTokenTtl()))
+                .build();
+        builder.tokenSettings(tokenSettings);
+
+        // 配置客户端设置
+        ClientSettings clientSettings = ClientSettings.builder()
+                .requireAuthorizationConsent(config.getRequireConsent())
+                .build();
+        builder.clientSettings(clientSettings);
+
+        // 保存到数据库
+        RegisteredClient registeredClient = builder.build();
+        clientRepository.save(registeredClient);
+    }
+
+    /**
+     * 解析逗号分隔的值
+     */
+    private Set<String> parseCommaSeparatedValues(String values) {
+        if (!StringUtils.hasText(values)) {
+            return Set.of();
+        }
+        return Arrays.stream(values.split(","))
+                .map(String::trim)
+                .filter(StringUtils::hasText)
+                .collect(Collectors.toSet());
+    }
+}

@@ -7,7 +7,7 @@ spring:
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/oauth2_sso?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://localhost:3307/oauth2_sso?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root
     password: root
 
@@ -23,6 +23,12 @@ spring:
       authorization-server:
         issuer: http://localhost:8080
 
+# OAuth2 客户端配置
+oauth2:
+  clients:
+    auto-register: true  # 是否启用自动注册
+    # 不在此处硬编码客户端列表，改为启动时检测数据库，如果为空则创建默认客户端
+
 mybatis:
   mapper-locations: classpath:mapper/*.xml
   type-aliases-package: com.example.oauth.server.entity
@@ -34,4 +40,4 @@ logging:
   level:
     root: INFO
     com.example.oauth.server: DEBUG
-    org.springframework.security: DEBUG
+    org.springframework.security: INFO

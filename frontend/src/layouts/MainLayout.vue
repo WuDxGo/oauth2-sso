@@ -19,6 +19,10 @@
           <el-icon><User /></el-icon>
           <span>用户管理</span>
         </el-menu-item>
+        <el-menu-item index="/clients">
+          <el-icon><Setting /></el-icon>
+          <span>客户端管理</span>
+        </el-menu-item>
         <el-menu-item index="/orders">
           <el-icon><Document /></el-icon>
           <span>订单管理</span>

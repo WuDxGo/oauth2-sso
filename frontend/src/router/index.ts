@@ -28,6 +28,12 @@ const router = createRouter({
           meta: { title: '用户管理', requiresAuth: true }
         },
         {
+          path: 'clients',
+          name: 'ClientManage',
+          component: () => import('@/views/ClientManage.vue'),
+          meta: { title: '客户端管理', requiresAuth: true }
+        },
+        {
           path: 'orders',
           name: 'OrderManage',
           component: () => import('@/views/OrderManage.vue'),
@@ -44,7 +50,7 @@ const router = createRouter({
 
 router.beforeEach((to, from, next) => {
   const authStore = useAuthStore()
-  
+
   if (to.meta.title) {
     document.title = `${to.meta.title} - OAuth2 SSO 系统`
   }
