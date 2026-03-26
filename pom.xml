@@ -17,14 +17,10 @@
 	<version>1.0.0</version>
 	<packaging>pom</packaging>
 	<name>OAuth2 SSO System</name>
-	<description>企业级 OAuth2 单点登录系统</description>
+	<description>企业级 OAuth2 认证服务中心</description>
 
 	<modules>
-		<module>common</module>
 		<module>oauth-server</module>
-		<module>gateway</module>
-		<module>order-service</module>
-		<module>user-service</module>
 	</modules>
 
 	<properties>
@@ -58,13 +54,6 @@
 				<version>${spring-cloud.version}</version>
 				<type>pom</type>
 				<scope>import</scope>
-			</dependency>
-
-			<!-- 通用模块 -->
-			<dependency>
-				<groupId>com.example.oauth</groupId>
-				<artifactId>common</artifactId>
-				<version>${project.version}</version>
 			</dependency>
 
 			<!-- MyBatis -->

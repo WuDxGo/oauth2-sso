@@ -32,14 +32,10 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) throws Exception {
         // 检查是否已有用户
         User admin = userMapper.findByUsername("admin");
-        log.info("检查 admin 用户：{}", admin);
-        
+
         if (admin != null) {
-            log.info("测试用户已存在，跳过初始化");
             return;
         }
-
-        log.info("开始初始化测试数据...");
 
         // 创建 admin 用户
         User adminUser = new User();
@@ -51,13 +47,6 @@ public class DataInitializer implements CommandLineRunner {
         adminUser.setGender(1);
         adminUser.setStatus(1);
         userMapper.insert(adminUser);
-        log.info("创建 admin 用户成功，ID: {}", adminUser.getId());
-
-        // 验证用户已创建
-        User createdAdmin = userMapper.findByUsername("admin");
-        log.info("验证 admin 用户：username={}, nickname={}", 
-            createdAdmin != null ? createdAdmin.getUsername() : "null",
-            createdAdmin != null ? createdAdmin.getNickname() : "null");
 
         // 创建 user 用户
         User normalUser = new User();
@@ -69,7 +58,6 @@ public class DataInitializer implements CommandLineRunner {
         normalUser.setGender(0);
         normalUser.setStatus(1);
         userMapper.insert(normalUser);
-        log.info("创建 user 用户成功，ID: {}", normalUser.getId());
 
         // 获取角色
         Role adminRole = roleMapper.findByCode("ADMIN");
@@ -80,9 +68,6 @@ public class DataInitializer implements CommandLineRunner {
             roleMapper.addUserRole(adminUser.getId(), adminRole.getId());
             roleMapper.addUserRole(adminUser.getId(), userRole.getId());
             roleMapper.addUserRole(normalUser.getId(), userRole.getId());
-            log.info("关联用户角色成功");
-        } else {
-            log.warn("角色不存在，请先执行 init.sql 初始化角色数据");
         }
 
         // 创建测试订单
@@ -94,12 +79,5 @@ public class DataInitializer implements CommandLineRunner {
                 now + "0002", adminUser.getId(), 200.00, 2, "测试订单 2");
         jdbcTemplate.update("INSERT INTO t_order (order_no, user_id, amount, status, description, create_time, update_time) VALUES (?, ?, ?, ?, ?, NOW(), NOW())",
                 now + "0003", normalUser.getId(), 150.00, 1, "测试订单 3");
-        log.info("创建测试订单成功");
-
-        log.info("===========================================");
-        log.info("测试账号:");
-        log.info("  管理员：admin / 123456");
-        log.info("  普通用户：user / 123456");
-        log.info("===========================================");
     }
 }

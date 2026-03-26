@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - OAuth2 认证中心</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-container {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 48px;
+            width: 100%;
+            max-width: 420px;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .login-header h1 {
+            color: #333;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .login-header p {
+            color: #999;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #555;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group input::placeholder {
+            color: #bbb;
+        }
+
+        .error-message {
+            background: #fee2e2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+        }
+
+        .error-message::before {
+            content: '⚠️';
+            margin-right: 8px;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .divider {
+            margin: 24px 0;
+            text-align: center;
+            position: relative;
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            width: 100%;
+            height: 1px;
+            background: #eee;
+        }
+
+        .divider span {
+            position: relative;
+            background: #fff;
+            padding: 0 16px;
+            color: #999;
+            font-size: 13px;
+        }
+
+        .test-accounts {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+        }
+
+        .test-accounts h3 {
+            color: #555;
+            font-size: 14px;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .account-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: #fff;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .account-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .account-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .account-info {
+            color: #999;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 24px;
+            color: #999;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-header">
+            <h1>🔐 OAuth2 认证中心</h1>
+            <p>欢迎登录，继续使用</p>
+        </div>
+
+        <!-- 错误提示 -->
+        <div th:if="${param.error}" class="error-message">
+            <span th:text="${errorMsg != null ? errorMsg : '用户名或密码错误'}">用户名或密码错误</span>
+        </div>
+
+        <!-- 登录表单 -->
+        <form id="loginForm" method="post" action="/login">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+            
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" name="username" placeholder="请输入用户名" required autofocus />
+            </div>
+
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" name="password" placeholder="请输入密码" required />
+            </div>
+
+            <!-- 隐藏的授权参数，用于授权码模式 -->
+            <input type="hidden" name="client_id" th:value="${param.client_id}" />
+            <input type="hidden" name="redirect_uri" th:value="${param.redirect_uri}" />
+            <input type="hidden" name="response_type" th:value="${param.response_type}" />
+            <input type="hidden" name="scope" th:value="${param.scope}" />
+            <input type="hidden" name="state" th:value="${param.state}" />
+
+            <button type="submit" class="submit-btn">登 录</button>
+        </form>
+
+        <div class="divider">
+            <span>测试账号</span>
+        </div>
+
+        <div class="test-accounts">
+            <h3>📋 可用账号</h3>
+            <div class="account-item">
+                <span class="account-label">管理员</span>
+                <span class="account-info">admin / 123456</span>
+            </div>
+            <div class="account-item">
+                <span class="account-label">普通用户</span>
+                <span class="account-info">user / 123456</span>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>© 2026 OAuth2 SSO System. All rights reserved.</p>
+        </div>
+    </div>
+
+    <script>
+        // 自动填充测试账号（可选）
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const clientId = urlParams.get('client_id');
+            
+            if (clientId) {
+                console.log('客户端 ID:', clientId);
+            }
+        });
+
+        // 表单提交前验证
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            if (!username || !password) {
+                e.preventDefault();
+                alert('请输入用户名和密码');
+                return false;
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,12 +1,13 @@
 package com.example.oauth.server.repository;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.oauth2.core.ClientAuthenticationMethod;
+import org.springframework.security.oauth2.jose.jws.SignatureAlgorithm;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClient;
 import org.springframework.security.oauth2.server.authorization.client.RegisteredClientRepository;
 import org.springframework.security.oauth2.server.authorization.jackson2.OAuth2AuthorizationServerJackson2Module;
@@ -15,36 +16,50 @@ import org.springframework.security.oauth2.server.authorization.settings.TokenSe
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.time.Duration;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
  * 基于 JDBC 的注册客户端仓库实现
- * 将 OAuth2 客户端信息存储在数据库中，支持动态管理
  */
 @Slf4j
 public class JdbcRegisteredClientRepository implements RegisteredClientRepository {
 
     private final JdbcTemplate jdbcTemplate;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper objectMapper;
 
     public JdbcRegisteredClientRepository(JdbcTemplate jdbcTemplate) {
         Assert.notNull(jdbcTemplate, "jdbcTemplate cannot be null");
         this.jdbcTemplate = jdbcTemplate;
+        // 初始化 ObjectMapper 并注册 OAuth2 Authorization Server 的 Jackson 模块
+        this.objectMapper = new ObjectMapper();
         this.objectMapper.registerModule(new OAuth2AuthorizationServerJackson2Module());
+        this.objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
     }
 
     @Override
     public void save(RegisteredClient registeredClient) {
         Assert.notNull(registeredClient, "registeredClient cannot be null");
-        
-        // 先删除旧的，再插入新的（简单实现，生产环境建议用 UPSERT）
-        jdbcTemplate.update("DELETE FROM oauth2_registered_client WHERE client_id = ?", 
+
+        // 先删除旧的，再插入新的
+        jdbcTemplate.update("DELETE FROM oauth2_registered_client WHERE client_id = ?",
             registeredClient.getClientId());
-        
+
+        // 提取认证方式的值（而不是 toString）
+        String authMethodsStr = registeredClient.getClientAuthenticationMethods().stream()
+            .map(m -> m.getValue())
+            .collect(Collectors.joining(","));
+
+        // 提取授权类型的值（而不是 toString）
+        String grantTypesStr = registeredClient.getAuthorizationGrantTypes().stream()
+            .map(g -> g.getValue())
+            .collect(Collectors.joining(","));
+
+        // 重定向 URI 和 scopes 直接使用
+        String redirectUrisStr = StringUtils.collectionToDelimitedString(registeredClient.getRedirectUris(), ",");
+        String scopesStr = StringUtils.collectionToDelimitedString(registeredClient.getScopes(), ",");
+
         jdbcTemplate.update(
             "INSERT INTO oauth2_registered_client (" +
             "id, client_id, client_name, client_secret, " +
@@ -55,55 +70,51 @@ public class JdbcRegisteredClientRepository implements RegisteredClientRepositor
             registeredClient.getClientId(),
             registeredClient.getClientName(),
             registeredClient.getClientSecret(),
-            StringUtils.collectionToDelimitedString(
-                registeredClient.getClientAuthenticationMethods(), ","),
-            StringUtils.collectionToDelimitedString(
-                registeredClient.getAuthorizationGrantTypes(), ","),
-            StringUtils.collectionToDelimitedString(
-                registeredClient.getRedirectUris(), ","),
-            StringUtils.collectionToDelimitedString(
-                registeredClient.getScopes(), ","),
-            serializeSettings(registeredClient.getClientSettings()),
-            serializeSettings(registeredClient.getTokenSettings())
+            authMethodsStr,
+            grantTypesStr,
+            redirectUrisStr,
+            scopesStr,
+            serializeClientSettings(registeredClient.getClientSettings()),
+            serializeTokenSettings(registeredClient.getTokenSettings())
         );
     }
 
     @Override
     public RegisteredClient findById(String id) {
         Assert.hasText(id, "id cannot be empty");
-        
         String sql = "SELECT * FROM oauth2_registered_client WHERE id = ?";
         try {
             return jdbcTemplate.queryForObject(sql, this::mapRowToRegisteredClient, id);
         } catch (Exception e) {
-            return null; // 没有找到返回 null
+            return null;
         }
     }
 
     @Override
     public RegisteredClient findByClientId(String clientId) {
         Assert.hasText(clientId, "clientId cannot be empty");
-        
         String sql = "SELECT * FROM oauth2_registered_client WHERE client_id = ?";
         try {
             return jdbcTemplate.queryForObject(sql, this::mapRowToRegisteredClient, clientId);
         } catch (Exception e) {
-            return null; // 没有找到返回 null
+            return null;
         }
     }
 
     /**
      * 查询所有客户端
-     * @return 客户端列表
      */
     public List<RegisteredClient> findAll() {
         String sql = "SELECT * FROM oauth2_registered_client";
-        return jdbcTemplate.query(sql, this::mapRowToRegisteredClient);
+        try {
+            return jdbcTemplate.query(sql, this::mapRowToRegisteredClient);
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
     }
 
     /**
      * 根据客户端 ID 删除客户端
-     * @param clientId 客户端 ID
      */
     public void deleteByClientId(String clientId) {
         Assert.hasText(clientId, "clientId cannot be empty");
@@ -114,47 +125,30 @@ public class JdbcRegisteredClientRepository implements RegisteredClientRepositor
     /**
      * 将数据库行映射为 RegisteredClient 对象
      */
-    private RegisteredClient mapRowToRegisteredClient(java.sql.ResultSet rs, int rowNum) 
+    private RegisteredClient mapRowToRegisteredClient(java.sql.ResultSet rs, int rowNum)
             throws java.sql.SQLException {
-        
+
         String id = rs.getString("id");
         String clientId = rs.getString("client_id");
         String clientName = rs.getString("client_name");
         String clientSecret = rs.getString("client_secret");
-        
-        Set<ClientAuthenticationMethod> clientAuthenticationMethods = 
-            StringUtils.commaDelimitedListToSet(rs.getString("client_authentication_methods"))
-                .stream()
-                .map(ClientAuthenticationMethod::new)
-                .collect(Collectors.toSet());
-        
-        Set<AuthorizationGrantType> authorizationGrantTypes = 
-            StringUtils.commaDelimitedListToSet(rs.getString("authorization_grant_types"))
-                .stream()
-                .map(AuthorizationGrantType::new)
-                .collect(Collectors.toSet());
-        
-        Set<String> redirectUris = 
-            StringUtils.commaDelimitedListToSet(rs.getString("redirect_uris"));
-        
-        Set<String> scopes =
-            StringUtils.commaDelimitedListToSet(rs.getString("scopes"));
 
-        Map<String, Object> clientSettingsMap =
-            deserializeSettings(rs.getString("client_settings"));
+        // 解析认证方式 - 提取实际的字符串值
+        Set<ClientAuthenticationMethod> clientAuthenticationMethods = parseStringValue(rs.getString("client_authentication_methods"));
 
-        Map<String, Object> tokenSettingsMap =
-            deserializeSettings(rs.getString("token_settings"));
+        // 解析授权类型 - 提取实际的字符串值
+        Set<AuthorizationGrantType> authorizationGrantTypes = parseAuthorizationGrantTypes(rs.getString("authorization_grant_types"));
 
-        // 处理空设置的情况 - 使用默认设置
-        ClientSettings clientSettings = clientSettingsMap.isEmpty() 
-            ? ClientSettings.builder().build()
-            : ClientSettings.withSettings(clientSettingsMap).build();
-            
-        TokenSettings tokenSettings = tokenSettingsMap.isEmpty()
-            ? TokenSettings.builder().build()
-            : TokenSettings.withSettings(tokenSettingsMap).build();
-        
+        // 解析重定向 URI
+        Set<String> redirectUris = StringUtils.commaDelimitedListToSet(rs.getString("redirect_uris"));
+
+        // 解析 scopes
+        Set<String> scopes = StringUtils.commaDelimitedListToSet(rs.getString("scopes"));
+
+        // 反序列化设置 - 使用 Builder 模式手动解析
+        ClientSettings clientSettings = deserializeClientSettings(rs);
+        TokenSettings tokenSettings = deserializeTokenSettings(rs);
+
         RegisteredClient.Builder builder = RegisteredClient.withId(id)
             .clientId(clientId)
             .clientName(clientName)
@@ -165,75 +159,150 @@ public class JdbcRegisteredClientRepository implements RegisteredClientRepositor
             .scopes(s -> s.addAll(scopes))
             .clientSettings(clientSettings)
             .tokenSettings(tokenSettings);
-        
+
         return builder.build();
     }
 
     /**
-     * 对象转 JSON 字符串
+     * 解析简单的字符串值集合（处理可能的对象 toString 格式）
      */
-    private String toJson(Object obj) {
-        try {
-            if (obj == null) {
-                return "{}";
-            }
-            return objectMapper.writeValueAsString(obj);
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Failed to serialize object to JSON", e);
+    private Set<ClientAuthenticationMethod> parseStringValue(String value) {
+        Set<ClientAuthenticationMethod> result = new HashSet<>();
+        if (!StringUtils.hasText(value)) {
+            return result;
         }
+        
+        for (String item : StringUtils.commaDelimitedListToSet(value)) {
+            // 处理可能的对象 toString 格式，如 "ClientAuthenticationMethod{value='client_secret_basic'}"
+            if (item.contains("{value='")) {
+                int start = item.indexOf("{value='") + 8;
+                int end = item.indexOf("'", start);
+                if (end > start) {
+                    result.add(new ClientAuthenticationMethod(item.substring(start, end)));
+                }
+            } else {
+                result.add(new ClientAuthenticationMethod(item));
+            }
+        }
+        return result;
     }
 
     /**
-     * JSON 字符串转对象
+     * 解析授权类型集合
      */
-    private <T> T fromJson(String json, TypeReference<T> typeReference) {
-        try {
-            if (!StringUtils.hasText(json)) {
-                // 返回空 Map 而不是 ArrayList
-                return (T) new java.util.HashMap<>();
-            }
-            return objectMapper.readValue(json, typeReference);
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Failed to deserialize JSON to object. JSON: " + json, e);
+    private Set<AuthorizationGrantType> parseAuthorizationGrantTypes(String value) {
+        Set<AuthorizationGrantType> result = new HashSet<>();
+        if (!StringUtils.hasText(value)) {
+            return result;
         }
+        
+        for (String item : StringUtils.commaDelimitedListToSet(value)) {
+            // 处理可能的对象 toString 格式，如 "AuthorizationGrantType{value='authorization_code'}"
+            if (item.contains("{value='")) {
+                int start = item.indexOf("{value='") + 8;
+                int end = item.indexOf("'", start);
+                if (end > start) {
+                    result.add(new AuthorizationGrantType(item.substring(start, end)));
+                }
+            } else {
+                result.add(new AuthorizationGrantType(item));
+            }
+        }
+        return result;
     }
 
     /**
-     * 将对象序列化为 JSON 字符串（特殊处理 ClientSettings 和 TokenSettings）
+     * 序列化 ClientSettings 为 JSON 字符串
      */
-    private String serializeSettings(Object settings) {
+    private String serializeClientSettings(ClientSettings settings) {
         if (settings == null) {
             return "{}";
         }
         try {
-            // 使用 writeValueAsString 直接序列化对象
             return objectMapper.writeValueAsString(settings);
         } catch (Exception e) {
-            throw new IllegalArgumentException("Failed to serialize settings to JSON", e);
+            log.error("序列化 ClientSettings 失败", e);
+            return "{}";
         }
     }
 
     /**
-     * 从 JSON 字符串反序列化为 Map（用于构建 ClientSettings 和 TokenSettings）
+     * 序列化 TokenSettings 为 JSON 字符串
      */
-    private Map<String, Object> deserializeSettings(String json) {
-        // 处理空值情况
-        if (!StringUtils.hasText(json) || "{}".equals(json.trim())) {
-            return new java.util.HashMap<>();
+    private String serializeTokenSettings(TokenSettings settings) {
+        if (settings == null) {
+            return "{}";
         }
         try {
-            // 直接反序列化为 Map
-            return objectMapper.readValue(json, new TypeReference<Map<String, Object>>() {});
-        } catch (JsonProcessingException e) {
-            // 记录详细错误日志
-            log.warn("反序列化设置失败，JSON: {}, 错误：{}", json, e.getMessage());
-            
-            // 如果 JSON 格式无效，返回空 Map 而不是抛出异常
-            // 这样可以兼容旧数据或损坏的数据
-            return new java.util.HashMap<>();
+            return objectMapper.writeValueAsString(settings);
         } catch (Exception e) {
-            log.error("反序列化设置时发生未知错误，JSON: {}", json, e);
-            return new java.util.HashMap<>();
+            log.error("序列化 TokenSettings 失败", e);
+            return "{}";
+        }
+    }
+
+    /**
+     * 从数据库行反序列化 ClientSettings
+     */
+    private ClientSettings deserializeClientSettings(java.sql.ResultSet rs) {
+        try {
+            // 直接从 ResultSet 读取布尔值
+            boolean requireConsent = false;
+            boolean requireProofKey = false;
+            
+            String clientSettingsStr = rs.getString("client_settings");
+            if (StringUtils.hasText(clientSettingsStr) && !clientSettingsStr.trim().equals("{}")) {
+                // 尝试从 JSON 中提取值
+                if (clientSettingsStr.contains("require-authorization-consent")) {
+                    requireConsent = clientSettingsStr.contains("true");
+                }
+                if (clientSettingsStr.contains("require-proof-key")) {
+                    requireProofKey = clientSettingsStr.contains("true");
+                }
+            }
+            
+            return ClientSettings.builder()
+                .requireAuthorizationConsent(requireConsent)
+                .requireProofKey(requireProofKey)
+                .build();
+        } catch (Exception e) {
+            log.warn("反序列化 ClientSettings 失败，使用默认值：{}", e.getMessage());
+            return ClientSettings.builder().build();
+        }
+    }
+
+    /**
+     * 从数据库行反序列化 TokenSettings
+     */
+    private TokenSettings deserializeTokenSettings(java.sql.ResultSet rs) {
+        try {
+            String tokenSettingsStr = rs.getString("token_settings");
+            
+            TokenSettings.Builder builder = TokenSettings.builder();
+            
+            if (StringUtils.hasText(tokenSettingsStr) && !tokenSettingsStr.trim().equals("{}")) {
+                // 解析 accessTokenTimeToLive (默认 7200 秒 = 2 小时)
+                if (tokenSettingsStr.contains("7200")) {
+                    builder.accessTokenTimeToLive(Duration.ofSeconds(7200));
+                }
+                // 解析 refreshTokenTimeToLive (默认 604800 秒 = 7 天)
+                if (tokenSettingsStr.contains("604800")) {
+                    builder.refreshTokenTimeToLive(Duration.ofSeconds(604800));
+                }
+                // 解析 authorizationCodeTimeToLive (默认 300 秒 = 5 分钟)
+                if (tokenSettingsStr.contains("300")) {
+                    builder.authorizationCodeTimeToLive(Duration.ofSeconds(300));
+                }
+                // 解析签名算法 (默认 RS256)
+                if (tokenSettingsStr.contains("RS256")) {
+                    builder.idTokenSignatureAlgorithm(SignatureAlgorithm.RS256);
+                }
+            }
+            
+            return builder.build();
+        } catch (Exception e) {
+            log.warn("反序列化 TokenSettings 失败，使用默认值：{}", e.getMessage());
+            return TokenSettings.builder().build();
         }
     }
 }

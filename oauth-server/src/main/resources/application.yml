@@ -5,6 +5,14 @@ spring:
   application:
     name: oauth-server
 
+  # Thymeleaf 视图配置
+  thymeleaf:
+    mode: HTML
+    encoding: UTF-8
+    prefix: classpath:/templates/
+    suffix: .html
+    cache: false
+
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3307/oauth2_sso?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
@@ -22,6 +30,9 @@ spring:
     oauth2:
       authorization-server:
         issuer: http://localhost:8080
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://localhost:8080/oauth2/jwks
 
 # OAuth2 客户端配置
 oauth2:

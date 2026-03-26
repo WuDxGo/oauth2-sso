@@ -58,8 +58,6 @@ public class AuthController {
      */
     @PostMapping("/api/login")
     public LoginResponse login(@RequestBody LoginRequest request) {
-        log.info("用户登录：{}", request.getUsername());
-
         // 1. 认证
         Authentication authentication = authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
@@ -82,7 +80,6 @@ public class AuthController {
             .build();
 
         String token = jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
-        log.info("用户 {} 登录成功，生成 JWT Token", request.getUsername());
 
         return new LoginResponse(token, 7200);
     }
@@ -95,8 +92,6 @@ public class AuthController {
                                       @RequestParam String password,
                                       @RequestParam(defaultValue = "password") String grant_type,
                                       @RequestParam(defaultValue = "read write") String scope) {
-        log.info("OAuth2 登录：{}", username);
-
         // 1. 认证
         Authentication authentication = authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(username, password)
@@ -115,8 +110,29 @@ public class AuthController {
             .build();
 
         String token = jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
-        log.info("用户 {} OAuth2 登录成功", username);
 
         return new LoginResponse(token, 7200);
+    }
+
+    /**
+     * 获取当前用户信息（OAuth2 资源服务器兼容）
+     */
+    @GetMapping("/api/users/me")
+    public UserInfo getCurrentUser(Authentication authentication) {
+        UserInfo info = new UserInfo();
+        info.setUsername(authentication.getName());
+        info.setNickname(authentication.getName());
+        info.setAuthorities(authentication.getAuthorities().stream()
+            .map(GrantedAuthority::getAuthority)
+            .collect(Collectors.toList()));
+        
+        return info;
+    }
+
+    @Data
+    public static class UserInfo {
+        private String username;
+        private String nickname;
+        private java.util.List<String> authorities;
     }
 }

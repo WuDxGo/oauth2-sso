@@ -5,7 +5,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 
 /**
  * OAuth2 服务器页面控制器
- * 提供授权确认等页面
+ * 提供登录等页面
  */
 @Controller
 public class LoginController {

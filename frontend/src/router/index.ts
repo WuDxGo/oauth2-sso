@@ -22,22 +22,10 @@ const router = createRouter({
           meta: { title: '首页', requiresAuth: true }
         },
         {
-          path: 'users',
-          name: 'UserManage',
-          component: () => import('@/views/UserManage.vue'),
-          meta: { title: '用户管理', requiresAuth: true }
-        },
-        {
           path: 'clients',
           name: 'ClientManage',
           component: () => import('@/views/ClientManage.vue'),
           meta: { title: '客户端管理', requiresAuth: true }
-        },
-        {
-          path: 'orders',
-          name: 'OrderManage',
-          component: () => import('@/views/OrderManage.vue'),
-          meta: { title: '订单管理', requiresAuth: true }
         }
       ]
     },

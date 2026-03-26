@@ -14,7 +14,7 @@ export default defineConfig({
     strictPort: true,  // 强制使用 3000 端口，如果被占用则报错
     proxy: {
       '/api': {
-        target: 'http://localhost:8081',
+        target: 'http://localhost:8080',
         changeOrigin: true
       },
       '/oauth2': {

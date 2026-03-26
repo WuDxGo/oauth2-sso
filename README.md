@@ -1,6 +1,6 @@
-# OAuth2 SSO 前后端分离系统
+# OAuth2 认证服务中心
 
-基于 Spring Cloud + Vue3 的企业级 OAuth2 单点登录系统。
+基于 Spring Cloud + Vue3 的企业级 OAuth2 认证服务中心，支持多系统接入。
 
 ## 技术栈
 
@@ -16,11 +16,7 @@
 ```
 oauth2-sso/
 ├── frontend/           # Vue3 前端 (端口 3000)
-├── oauth-server/       # OAuth2 认证服务器 (端口 8080)
-├── gateway/           # API 网关 (端口 8081)
-├── order-service/     # 订单服务 (端口 8082)
-├── user-service/      # 用户服务 (端口 8083)
-└── common/            # 通用模块
+└── oauth-server/       # OAuth2 认证服务器 (端口 8080)
 ```
 
 ## 快速启动
@@ -33,14 +29,11 @@ mysql -u root -p < init.sql
 
 ### 2. 启动后端服务
 
-使用 IDEA 依次启动以下服务：
+使用 IDEA 启动以下服务：
 
 | 服务 | 启动类 | 端口 |
 |------|--------|------|
 | OAuth2 服务器 | `OAuth2ServerApplication` | 8080 |
-| API 网关 | `GatewayApplication` | 8081 |
-| 订单服务 | `OrderServiceApplication` | 8082 |
-| 用户服务 | `UserServiceApplication` | 8083 |
 
 ### 3. 启动前端
 
@@ -65,15 +58,14 @@ npm run dev
 
 - **登录认证** - JWT Token 认证，有效期 2 小时
 - **首页仪表盘** - 数据统计展示
-- **用户管理** - 用户 CRUD 操作
-- **订单管理** - 订单 CRUD 操作
+- **客户端管理** - OAuth2 客户端配置管理
 
 ## API 接口
 
 ### 认证接口
 
 ```bash
-POST http://localhost:8081/api/login
+POST http://localhost:8080/api/login
 Content-Type: application/json
 
 {
@@ -94,14 +86,7 @@ Content-Type: application/json
 ### 用户接口
 
 ```bash
-GET http://localhost:8081/api/users/me
-Authorization: Bearer {access_token}
-```
-
-### 订单接口
-
-```bash
-GET http://localhost:8081/api/orders
+GET http://localhost:8080/api/users/me
 Authorization: Bearer {access_token}
 ```
 
@@ -145,15 +130,13 @@ cd frontend
 npm run build
 ```
 
-## 脚本文件
+## 接入说明
 
-| 脚本 | 说明 |
-|------|------|
-| `build.bat` | 编译前后端项目 |
-| `start-all.bat` | 启动所有服务 |
-| `stop-all.bat` | 停止所有服务 |
+本认证服务中心可为多个业务系统提供统一认证服务，业务系统只需集成 OAuth2 客户端即可接入。
+
+详细接入说明请参考：`客户端配置说明.md`
 
 ---
 
-**版本**: 1.0.0  
-**更新时间**: 2026 年 3 月 21 日
+**版本**: 1.0.0
+**更新时间**: 2026 年 3 月 25 日

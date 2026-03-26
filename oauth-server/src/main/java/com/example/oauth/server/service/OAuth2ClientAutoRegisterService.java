@@ -39,23 +39,11 @@ public class OAuth2ClientAutoRegisterService implements ApplicationRunner {
     @Transactional
     public void run(ApplicationArguments args) {
         if (!clientProperties.isAutoRegister()) {
-            log.info("OAuth2 客户端自动注册已禁用");
             return;
         }
 
-        // 检查数据库中是否已有客户端
-        List<RegisteredClient> existingClients = clientRepository.findAll();
-        if (!existingClients.isEmpty()) {
-            log.info("数据库中已有 {} 个客户端，跳过默认客户端创建", existingClients.size());
-            return;
-        }
-
-        log.info("数据库为空，开始创建默认 OAuth2 客户端...");
-        
-        // 创建默认客户端
+        // 创建默认客户端（如果已存在则更新）
         createDefaultClients();
-        
-        log.info("OAuth2 默认客户端创建完成");
     }
 
     /**
@@ -64,14 +52,9 @@ public class OAuth2ClientAutoRegisterService implements ApplicationRunner {
     @Transactional
     public void createDefaultClients() {
         List<OAuth2ClientProperties.ClientConfig> defaultClients = getDefaultClientConfigs();
-        
+
         for (OAuth2ClientProperties.ClientConfig config : defaultClients) {
-            try {
-                registerClient(config);
-                log.info("默认客户端 [{}] 创建成功", config.getClientId());
-            } catch (Exception e) {
-                log.error("默认客户端 [{}] 创建失败：{}", config.getClientId(), e.getMessage());
-            }
+            registerClient(config);
         }
     }
 
@@ -109,32 +92,31 @@ public class OAuth2ClientAutoRegisterService implements ApplicationRunner {
         clients.add(order);
         
         // 用户服务客户端
-        OAuth2ClientProperties.ClientConfig user = new OAuth2ClientProperties.ClientConfig();
-        user.setClientId("user-service");
-        user.setClientName("用户服务");
-        user.setClientSecret("user-secret");
-        user.setAuthenticationMethods("client_secret_basic");
-        user.setGrantTypes("client_credentials");
-        user.setScopes("read,write");
-        user.setAccessTokenTtl(7200L);
-        user.setRefreshTokenTtl(604800L);
-        user.setRequireConsent(true);
-        clients.add(user);
+        OAuth2ClientProperties.ClientConfig product = new OAuth2ClientProperties.ClientConfig();
+        product.setClientId("product-service");
+        product.setClientName("商品服务");
+        product.setClientSecret("product-secret");
+        product.setAuthenticationMethods("client_secret_basic");
+        product.setGrantTypes("client_credentials");
+        product.setScopes("read,write");
+        product.setAccessTokenTtl(7200L);
+        product.setRefreshTokenTtl(604800L);
+        product.setRequireConsent(true);
+        clients.add(product);
         
         return clients;
     }
 
     /**
-     * 注册单个客户端
+     * 注册单个客户端（如果已存在则更新）
      */
     @Transactional
     public void registerClient(OAuth2ClientProperties.ClientConfig config) {
         // 检查客户端是否已存在
         RegisteredClient existingClient = clientRepository.findByClientId(config.getClientId());
-        
+
         if (existingClient != null) {
-            log.info("客户端 [{}] 已存在，跳过注册", config.getClientId());
-            return;
+            clientRepository.deleteByClientId(config.getClientId());
         }
 
         // 构建 RegisteredClient

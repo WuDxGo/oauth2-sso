@@ -58,23 +58,3 @@ export const getToken = (params: LoginParams): Promise<TokenResponse> => {
 export const getCurrentUser = (): Promise<UserInfo> => {
   return api.get<UserInfo>('/users/me')
 }
-
-// 获取用户列表
-export const getUserList = (): Promise<UserInfo[]> => {
-  return api.get<UserInfo[]>('/users')
-}
-
-// 创建用户
-export const createUser = (user: Partial<UserInfo>): Promise<UserInfo> => {
-  return api.post<UserInfo>('/users/users', user)
-}
-
-// 更新用户
-export const updateUser = (id: number, user: Partial<UserInfo>): Promise<UserInfo> => {
-  return api.put<UserInfo>(`/users/users/${id}`, user)
-}
-
-// 删除用户
-export const deleteUser = (id: number): Promise<void> => {
-  return api.delete<void>(`/users/users/${id}`)
-}
