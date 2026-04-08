@@ -13,14 +13,8 @@ const router = createRouter({
     {
       path: '/',
       component: () => import('@/layouts/MainLayout.vue'),
-      redirect: '/dashboard',
+      redirect: '/clients',
       children: [
-        {
-          path: 'dashboard',
-          name: 'Dashboard',
-          component: () => import('@/views/Dashboard.vue'),
-          meta: { title: '首页', requiresAuth: true }
-        },
         {
           path: 'clients',
           name: 'ClientManage',

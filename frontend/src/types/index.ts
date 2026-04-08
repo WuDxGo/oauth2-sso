@@ -10,17 +10,6 @@ export interface User {
   roles: string[]
 }
 
-export interface Order {
-  id: number
-  orderNo: string
-  userId: number
-  amount: number
-  status: number
-  description: string
-  createTime: string
-  updateTime: string
-}
-
 export interface Result<T = any> {
   code: number
   message: string

@@ -56,13 +56,48 @@ npm run dev
 
 ## 功能模块
 
-- **登录认证** - JWT Token 认证，有效期 2 小时
-- **首页仪表盘** - 数据统计展示
-- **客户端管理** - OAuth2 客户端配置管理
+- **登录认证** - JWT Token 认证，支持表单登录和 OAuth2 密码模式
+- **OAuth2 授权** - 支持 OAuth2.1 标准，包括授权码模式、密码模式、客户端凭证模式等
+- **客户端管理** - OAuth2 客户端配置管理（增删改查）
+- **用户管理** - 基于 RBAC 的用户权限管理
 
-## API 接口
+## 核心特性
 
-### 认证接口
+- ✅ 支持 OAuth2.1 标准协议
+- ✅ JWT Token 颁发与验证
+- ✅ 表单登录 + OAuth2 密码登录双模式
+- ✅ 客户端自动注册与手动管理
+- ✅ RBAC 权限模型（用户-角色-权限）
+- ✅ CORS 跨域配置
+- ✅ 前端单点登录集成示例
+
+## OAuth2 端点
+
+### 授权端点
+
+```
+GET http://localhost:8080/oauth2/authorize
+?response_type=code
+&client_id={client_id}
+&redirect_uri={redirect_uri}
+&scope=openid profile
+&state={state}
+```
+
+### Token 端点
+
+```
+POST http://localhost:8080/oauth2/token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=password
+&username=admin
+&password=123456
+&client_id={client_id}
+&client_secret={client_secret}
+```
+
+### 认证接口（前端登录用）
 
 ```bash
 POST http://localhost:8080/api/login
@@ -117,6 +152,19 @@ JWT Token 中的 scope 未正确转换，检查服务是否正常启动
 
 ## 开发说明
 
+### 数据库表结构
+
+| 表名 | 说明 |
+|------|------|
+| sys_user | 用户表 |
+| sys_role | 角色表 |
+| sys_permission | 权限表 |
+| sys_user_role | 用户-角色关联表 |
+| sys_role_permission | 角色-权限关联表 |
+| oauth2_registered_client | OAuth2 注册客户端表 |
+| oauth2_authorization | OAuth2 授权表 |
+| oauth2_authorization_consent | OAuth2 授权同意表 |
+
 ### 后端编译
 
 ```bash
@@ -138,5 +186,5 @@ npm run build
 
 ---
 
-**版本**: 1.0.0
-**更新时间**: 2026 年 3 月 25 日
+**版本**: 1.0.0  
+**更新时间**: 2026 年 4 月 9 日

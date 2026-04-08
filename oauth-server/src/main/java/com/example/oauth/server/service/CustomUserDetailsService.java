@@ -1,72 +1,108 @@
-package com.example.oauth.server.service; // 定义包路径，用于组织和管理 Java 用户详情服务类
+package com.example.oauth.server.service;
 
-import com.example.oauth.server.entity.Permission; // 导入权限实体类
-import com.example.oauth.server.entity.Role; // 导入角色实体类
-import com.example.oauth.server.entity.User; // 导入用户实体类
-import com.example.oauth.server.mapper.PermissionMapper; // 导入权限 Mapper 接口
-import com.example.oauth.server.mapper.RoleMapper; // 导入角色 Mapper 接口
-import com.example.oauth.server.mapper.UserMapper; // 导入用户 Mapper 接口
-import lombok.RequiredArgsConstructor; // 导入 Lombok 的 RequiredArgsConstructor 注解，自动生成构造函数
-import org.springframework.security.core.authority.SimpleGrantedAuthority; // 导入简单授权权限类
-import org.springframework.security.core.userdetails.UserDetails; // 导入用户详情接口
-import org.springframework.security.core.userdetails.UserDetailsService; // 导入用户详情服务接口
-import org.springframework.security.core.userdetails.UsernameNotFoundException; // 导入用户名未找到异常
-import org.springframework.stereotype.Service; // 导入 Service 注解，标识此类为 Spring 服务组件
+import com.example.oauth.server.entity.Permission;
+import com.example.oauth.server.entity.Role;
+import com.example.oauth.server.entity.User;
+import com.example.oauth.server.mapper.PermissionMapper;
+import com.example.oauth.server.mapper.RoleMapper;
+import com.example.oauth.server.mapper.UserMapper;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
 
-import java.util.ArrayList; // 导入 ArrayList 列表类
-import java.util.List; // 导入 List 列表接口
+import java.util.ArrayList;
+import java.util.List;
 
 /**
- * 用户详情服务实现类
- * 实现 Spring Security 的 UserDetailsService 接口，负责加载用户信息和权限
+ * 自定义用户详情服务实现类
+ * 实现Spring Security的UserDetailsService接口,负责从数据库加载用户完整信息
+ * 包括用户基本信息、角色列表和权限列表,用于Spring Security的认证和授权流程
+ * 通过@Service注解注册为Spring Bean,由Spring管理生命周期
  */
-@Service // 标识此类为 Spring 服务组件，自动注册到 Spring 容器
-@RequiredArgsConstructor // Lombok 注解，生成包含所有 final 字段的构造函数
-public class CustomUserDetailsService implements UserDetailsService { // 定义自定义用户详情服务类，实现 UserDetailsService 接口
-
-    private final UserMapper userMapper; // 注入用户 Mapper 接口，用于查询用户信息
-    private final RoleMapper roleMapper; // 注入角色 Mapper 接口，用于查询用户角色
-    private final PermissionMapper permissionMapper; // 注入权限 Mapper 接口，用于查询用户权限
+@Service
+@RequiredArgsConstructor
+public class CustomUserDetailsService implements UserDetailsService {
 
     /**
-     * 根据用户名加载用户详情
-     * @param username 用户名
-     * @return UserDetails Spring Security 的用户详情对象
-     * @throws UsernameNotFoundException 当用户不存在时抛出此异常
+     * 用户数据访问接口
+     * 用于根据用户名查询用户基本信息(用户名、密码、状态等)
+     * 通过构造器注入,由@RequiredArgsConstructor自动生成构造函数
      */
-    @Override // 实现接口方法
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException { // 根据用户名加载用户详情的方法
-        // 查询用户信息
-        User user = userMapper.findByUsername(username); // 通过用户名从数据库查询用户信息
+    private final UserMapper userMapper;
+
+    /**
+     * 角色数据访问接口
+     * 用于根据用户ID查询该用户关联的所有角色
+     * 角色是多对多关系,一个用户可以拥有多个角色
+     */
+    private final RoleMapper roleMapper;
+
+    /**
+     * 权限数据访问接口
+     * 用于根据用户ID查询该用户直接关联的所有权限
+     * 权限用于细粒度的访问控制
+     */
+    private final PermissionMapper permissionMapper;
+
+    /**
+     * 根据用户名加载用户详情信息
+     * 该方法由Spring Security在用户认证时自动调用
+     * 负责从数据库查询用户信息并转换为Spring Security能识别的格式
+     *
+     * @param username 用户名字符串,由登录接口传入
+     * @return UserDetails对象,包含用户名、加密密码和权限列表,供Spring Security验证
+     * @throws UsernameNotFoundException 当用户不存在或已被禁用时抛出,阻止认证流程
+     */
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        // 步骤1:根据用户名从数据库查询用户基本信息(用户名、密码、状态等)
+        // UserMapper通过MyBatis执行SQL查询返回User实体对象
+        User user = userMapper.findByUsername(username);
+        // 如果查询结果为null,说明该用户不存在,抛出异常阻止认证
         if (user == null) {
-            throw new UsernameNotFoundException("用户不存在：" + username); // 如果用户不存在，抛出用户名未找到异常
+            throw new UsernameNotFoundException("用户不存在：" + username);
         }
 
-        // 检查用户状态
+        // 步骤2:检查用户的启用状态,确保只有活跃用户可以登录
+        // status字段:1表示启用,0或其他值表示禁用
         if (user.getStatus() != 1) {
-            throw new UsernameNotFoundException("用户已被禁用：" + username); // 如果用户状态不是正常状态，抛出异常
+            // 用户已禁用,抛出异常并提示明确原因
+            throw new UsernameNotFoundException("用户已被禁用：" + username);
         }
 
-        // 查询用户角色
-        List<Role> roles = roleMapper.findByUserId(user.getId()); // 根据用户 ID 查询所有关联的角色
-        List<SimpleGrantedAuthority> authorities = new ArrayList<>(); // 创建权限列表，存储用户的角色和权限
+        // 步骤3:根据用户ID查询该用户关联的所有角色
+        // 角色是多对多关系,通过中间表关联
+        List<Role> roles = roleMapper.findByUserId(user.getId());
+        // 创建Spring Security的权限列表,用于存储角色和权限信息
+        List<SimpleGrantedAuthority> authorities = new ArrayList<>();
 
-        // 添加角色权限
+        // 步骤4:遍历角色列表,将每个角色转换为Spring Security的权限对象
         for (Role role : roles) {
-            authorities.add(new SimpleGrantedAuthority("ROLE_" + role.getCode())); // 将角色编码添加到权限列表中，前缀为"ROLE_"
+            // 角色权限需要添加"ROLE_"前缀,这是Spring Security的命名约定
+            // 例如角色code为"ADMIN",转换为"ROLE_ADMIN"
+            // 这样可以在安全表达式中使用hasRole('ADMIN')进行权限校验
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + role.getCode()));
         }
 
-        // 查询用户权限
-        List<Permission> permissions = permissionMapper.findByUserId(user.getId()); // 根据用户 ID 查询所有关联的权限
+        // 步骤5:根据用户ID查询该用户直接关联的所有权限(细粒度权限)
+        // 权限不同于角色,是更细粒度的访问控制,如"user:read"、"user:write"
+        List<Permission> permissions = permissionMapper.findByUserId(user.getId());
+        // 步骤6:遍历权限列表,将每个权限转换为Spring Security的权限对象
         for (Permission permission : permissions) {
-            authorities.add(new SimpleGrantedAuthority(permission.getCode())); // 将权限编码添加到权限列表中
+            // 权限code直接转换为权限对象,无需添加前缀
+            // 可以在安全表达式中使用hasAuthority('user:read')进行校验
+            authorities.add(new SimpleGrantedAuthority(permission.getCode()));
         }
 
-        // 返回 Spring Security 的 UserDetails
+        // 步骤7:构建并返回Spring Security的UserDetails对象
+        // 使用Spring Security内置的User实现类,封装认证所需的所有信息
         return new org.springframework.security.core.userdetails.User(
-                user.getUsername(), // 设置用户名
-                user.getPassword(), // 设置加密后的密码
-                authorities // 设置权限列表
-        ); // 返回 Spring Security 的 User 对象
+                user.getUsername(),      // 用户名,用于标识当前认证用户
+                user.getPassword(),      // 已加密的密码(BCrypt),用于密码比对验证
+                authorities              // 权限列表,包含角色权限和直接权限,用于授权决策
+        );
     }
 }

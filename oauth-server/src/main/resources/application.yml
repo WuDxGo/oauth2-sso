@@ -34,8 +34,12 @@ spring:
         jwt:
           jwk-set-uri: http://localhost:8080/oauth2/jwks
 
-# OAuth2 客户端配置
+# OAuth2 配置
 oauth2:
+  # 密钥存储路径
+  key-store:
+    path: ./keystore
+  # 客户端配置
   clients:
     auto-register: true  # 是否启用自动注册
     defaults:

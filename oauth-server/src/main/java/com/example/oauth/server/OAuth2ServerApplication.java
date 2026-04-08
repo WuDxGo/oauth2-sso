@@ -1,22 +1,31 @@
-package com.example.oauth.server; // 定义包路径，用于组织和管理 Java OAuth2 服务器应用类
+package com.example.oauth.server;
 
-import org.mybatis.spring.annotation.MapperScan; // 导入 MyBatis 的 MapperScan 注解，用于扫描 Mapper 接口
-import org.springframework.boot.SpringApplication; // 导入 Spring Boot 启动类，用于启动 Spring Boot 应用
-import org.springframework.boot.autoconfigure.SpringBootApplication; // 导入 Spring Boot 自动配置注解，启用组件扫描和自动配置
+import org.mybatis.spring.annotation.MapperScan;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
- * OAuth2 认证服务器启动类
- * 使用@SpringBootApplication 注解标识，是 Spring Boot 应用的入口点
+ * OAuth2单点登录认证服务器启动类
+ * 作为整个应用的入口点,负责初始化Spring Boot应用上下文
+ * 自动配置并加载所有组件:控制器、服务、配置、数据访问层等
+ * 通过@MapperScan注解扫描MyBatis的Mapper接口,实现数据库操作
  */
-@SpringBootApplication // Spring Boot 核心注解，标识此类为配置类并启用自动配置和组件扫描
-@MapperScan("com.example.oauth.server.mapper") // MyBatis 注解，指定要扫描的 Mapper 接口包路径
-public class OAuth2ServerApplication { // 定义 OAuth2 服务器应用主类
+@SpringBootApplication
+@MapperScan("com.example.oauth.server.mapper")
+public class OAuth2ServerApplication {
 
     /**
-     * 应用程序主方法（入口点）
-     * @param args 命令行参数数组
+     * Java应用程序的标准入口方法
+     * 接收命令行参数并启动Spring Boot应用
+     * 该方法会阻塞线程直到应用正常关闭
+     *
+     * @param args 命令行参数数组,可传递启动配置如端口号、环境标识等
      */
-    public static void main(String[] args) { // 程序入口方法
-        SpringApplication.run(OAuth2ServerApplication.class, args); // 启动 Spring Boot 应用，加载配置并初始化上下文
+    public static void main(String[] args) {
+        // 调用SpringApplication的run方法启动应用
+        // 第一个参数指定主配置类,用于加载应用上下文
+        // 第二个参数传递命令行参数
+        // 返回ConfigurableApplicationContext对象代表应用已启动
+        SpringApplication.run(OAuth2ServerApplication.class, args);
     }
 }

@@ -11,10 +11,6 @@
         active-text-color="#409EFF"
         router
       >
-        <el-menu-item index="/dashboard">
-          <el-icon><HomeFilled /></el-icon>
-          <span>首页</span>
-        </el-menu-item>
         <el-menu-item index="/clients">
           <el-icon><Setting /></el-icon>
           <span>客户端管理</span>
@@ -63,7 +59,7 @@ const route = useRoute()
 const authStore = useAuthStore()
 
 const activeMenu = computed(() => route.path)
-const currentTitle = computed(() => route.meta.title as string || '首页')
+const currentTitle = computed(() => route.meta.title as string || 'OAuth2 认证中心')
 
 const handleCommand = (command: string) => {
   if (command === 'logout') {
