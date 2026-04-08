@@ -51,60 +51,16 @@ public class OAuth2ClientAutoRegisterService implements ApplicationRunner {
      */
     @Transactional
     public void createDefaultClients() {
-        List<OAuth2ClientProperties.ClientConfig> defaultClients = getDefaultClientConfigs();
+        List<OAuth2ClientProperties.ClientConfig> defaultClients = clientProperties.getDefaults();
+
+        if (defaultClients == null || defaultClients.isEmpty()) {
+            log.warn("未配置默认客户端，跳过自动注册");
+            return;
+        }
 
         for (OAuth2ClientProperties.ClientConfig config : defaultClients) {
             registerClient(config);
         }
-    }
-
-    /**
-     * 获取默认客户端配置
-     */
-    private List<OAuth2ClientProperties.ClientConfig> getDefaultClientConfigs() {
-        List<OAuth2ClientProperties.ClientConfig> clients = new ArrayList<>();
-        
-        // 网关客户端
-        OAuth2ClientProperties.ClientConfig gateway = new OAuth2ClientProperties.ClientConfig();
-        gateway.setClientId("gateway-client");
-        gateway.setClientName("网关客户端");
-        gateway.setClientSecret("gateway-secret");
-        gateway.setAuthenticationMethods("client_secret_basic");
-        gateway.setGrantTypes("password,authorization_code,refresh_token");
-        gateway.setRedirectUris("http://localhost:8081/login/oauth2/code/gateway-client");
-        gateway.setScopes("openid,profile,read,write");
-        gateway.setAccessTokenTtl(7200L);
-        gateway.setRefreshTokenTtl(604800L);
-        gateway.setRequireConsent(false);
-        clients.add(gateway);
-        
-        // 订单服务客户端
-        OAuth2ClientProperties.ClientConfig order = new OAuth2ClientProperties.ClientConfig();
-        order.setClientId("order-service");
-        order.setClientName("订单服务");
-        order.setClientSecret("order-secret");
-        order.setAuthenticationMethods("client_secret_basic");
-        order.setGrantTypes("client_credentials");
-        order.setScopes("read,write");
-        order.setAccessTokenTtl(7200L);
-        order.setRefreshTokenTtl(604800L);
-        order.setRequireConsent(true);
-        clients.add(order);
-        
-        // 用户服务客户端
-        OAuth2ClientProperties.ClientConfig product = new OAuth2ClientProperties.ClientConfig();
-        product.setClientId("product-service");
-        product.setClientName("商品服务");
-        product.setClientSecret("product-secret");
-        product.setAuthenticationMethods("client_secret_basic");
-        product.setGrantTypes("client_credentials");
-        product.setScopes("read,write");
-        product.setAccessTokenTtl(7200L);
-        product.setRefreshTokenTtl(604800L);
-        product.setRequireConsent(true);
-        clients.add(product);
-        
-        return clients;
     }
 
     /**

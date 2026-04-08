@@ -1,5 +1,6 @@
 package com.example.oauth.server.controller;
 
+import com.example.oauth.server.config.JwtProperties;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +27,7 @@ public class AuthController {
 
     private final AuthenticationManager authenticationManager;
     private final JwtEncoder jwtEncoder;
+    private final JwtProperties jwtProperties;
 
     /**
      * 登录请求
@@ -65,14 +67,15 @@ public class AuthController {
 
         // 2. 生成 JWT
         Instant now = Instant.now();
-        Instant expiry = now.plus(2, ChronoUnit.HOURS);
+        long ttl = jwtProperties.getAccessTokenTtl();
+        Instant expiry = now.plus(ttl, ChronoUnit.SECONDS);
 
         String scope = authentication.getAuthorities().stream()
             .map(GrantedAuthority::getAuthority)
             .collect(Collectors.joining(" "));
 
         JwtClaimsSet claims = JwtClaimsSet.builder()
-            .issuer("http://localhost:8080")
+            .issuer(jwtProperties.getIssuer())
             .issuedAt(now)
             .expiresAt(expiry)
             .subject(authentication.getName())
@@ -81,7 +84,7 @@ public class AuthController {
 
         String token = jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
 
-        return new LoginResponse(token, 7200);
+        return new LoginResponse(token, ttl);
     }
 
     /**
@@ -99,10 +102,11 @@ public class AuthController {
 
         // 2. 生成 JWT
         Instant now = Instant.now();
-        Instant expiry = now.plus(2, ChronoUnit.HOURS);
+        long ttl = jwtProperties.getAccessTokenTtl();
+        Instant expiry = now.plus(ttl, ChronoUnit.SECONDS);
 
         JwtClaimsSet claims = JwtClaimsSet.builder()
-            .issuer("http://localhost:8080")
+            .issuer(jwtProperties.getIssuer())
             .issuedAt(now)
             .expiresAt(expiry)
             .subject(authentication.getName())
@@ -111,7 +115,7 @@ public class AuthController {
 
         String token = jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
 
-        return new LoginResponse(token, 7200);
+        return new LoginResponse(token, ttl);
     }
 
     /**

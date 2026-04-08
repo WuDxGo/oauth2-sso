@@ -71,8 +71,8 @@ public class DataInitializer implements CommandLineRunner {
         }
 
         // 创建测试订单
-        String now = java.time.LocalDateTime.now()
-            .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+        String now = LocalDateTime.now()
+            .format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
         jdbcTemplate.update("INSERT INTO t_order (order_no, user_id, amount, status, description, create_time, update_time) VALUES (?, ?, ?, ?, ?, NOW(), NOW())",
                 now + "0001", adminUser.getId(), 100.00, 1, "测试订单 1");
         jdbcTemplate.update("INSERT INTO t_order (order_no, user_id, amount, status, description, create_time, update_time) VALUES (?, ?, ?, ?, ?, NOW(), NOW())",

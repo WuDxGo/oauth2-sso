@@ -38,6 +38,12 @@ import java.util.UUID;
 @EnableWebSecurity
 public class AuthorizationServerConfig {
 
+    private final JwtProperties jwtProperties;
+
+    public AuthorizationServerConfig(JwtProperties jwtProperties) {
+        this.jwtProperties = jwtProperties;
+    }
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return PasswordEncoderFactories.createDelegatingPasswordEncoder();
@@ -154,7 +160,7 @@ public class AuthorizationServerConfig {
     @Bean
     public AuthorizationServerSettings authorizationServerSettings() {
         return AuthorizationServerSettings.builder()
-                .issuer("http://localhost:8080")
+                .issuer(jwtProperties.getIssuer())
                 .build();
     }
 }

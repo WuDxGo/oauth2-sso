@@ -86,6 +86,7 @@ public class JdbcRegisteredClientRepository implements RegisteredClientRepositor
         try {
             return jdbcTemplate.queryForObject(sql, this::mapRowToRegisteredClient, id);
         } catch (Exception e) {
+            log.warn("根据ID查询客户端失败，ID: {}, 错误: {}", id, e.getMessage());
             return null;
         }
     }
@@ -97,6 +98,7 @@ public class JdbcRegisteredClientRepository implements RegisteredClientRepositor
         try {
             return jdbcTemplate.queryForObject(sql, this::mapRowToRegisteredClient, clientId);
         } catch (Exception e) {
+            log.warn("根据ClientId查询客户端失败，ClientId: {}, 错误: {}", clientId, e.getMessage());
             return null;
         }
     }
@@ -109,7 +111,8 @@ public class JdbcRegisteredClientRepository implements RegisteredClientRepositor
         try {
             return jdbcTemplate.query(sql, this::mapRowToRegisteredClient);
         } catch (Exception e) {
-            return new ArrayList<>();
+            log.error("查询所有客户端失败: {}", e.getMessage(), e);
+            throw new RuntimeException("查询所有客户端失败", e);
         }
     }
 

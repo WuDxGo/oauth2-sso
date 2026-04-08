@@ -29,7 +29,7 @@ public class GlobalExceptionHandler { // 定义全局异常处理器类
     @ExceptionHandler(BusinessException.class) // 指定此方法处理 BusinessException 类型的异常
     @ResponseStatus(HttpStatus.OK) // 设置响应状态码为 200 OK（业务异常通常返回 OK，由前端根据 code 判断）
     public Result<Void> handleBusinessException(BusinessException e) { // 处理业务异常的方法
-        log.error("业务异常：{}", e.getMessage()); // 使用日志记录器记录错误日志，输出异常消息
+        log.warn("业务异常：{}", e.getMessage()); // 使用日志记录器记录警告日志，输出异常消息
         return Result.error(e.getCode(), e.getMessage()); // 返回统一的错误响应结果，包含错误码和错误消息
     }
 
@@ -45,7 +45,7 @@ public class GlobalExceptionHandler { // 定义全局异常处理器类
         String message = e.getBindingResult().getFieldErrors().stream() // 从异常对象中获取所有字段错误列表，并转换为流
                 .map(FieldError::getDefaultMessage) // 提取每个字段的默认错误消息
                 .collect(Collectors.joining(", ")); // 使用分号将所有错误消息连接成一个字符串
-        log.error("参数校验异常：{}", message); // 使用日志记录器记录错误日志，输出校验失败的详细信息
+        log.warn("参数校验异常：{}", message); // 使用日志记录器记录警告日志，输出校验失败的详细信息
         return Result.error(400, message); // 返回统一的错误响应结果，错误码为 400，消息为校验失败详情
     }
 
@@ -61,7 +61,7 @@ public class GlobalExceptionHandler { // 定义全局异常处理器类
         String message = e.getBindingResult().getFieldErrors().stream() // 从异常对象中获取所有字段错误列表，并转换为流
                 .map(FieldError::getDefaultMessage) // 提取每个字段的默认错误消息
                 .collect(Collectors.joining(", ")); // 使用分号将所有错误消息连接成一个字符串
-        log.error("参数绑定异常：{}", message); // 使用日志记录器记录错误日志，输出绑定失败的详细信息
+        log.warn("参数绑定异常：{}", message); // 使用日志记录器记录警告日志，输出绑定失败的详细信息
         return Result.error(400, message); // 返回统一的错误响应结果，错误码为 400，消息为绑定失败详情
     }
 
@@ -74,7 +74,7 @@ public class GlobalExceptionHandler { // 定义全局异常处理器类
     @ExceptionHandler(IllegalArgumentException.class) // 指定此方法处理 IllegalArgumentException 类型的异常
     @ResponseStatus(HttpStatus.BAD_REQUEST) // 设置响应状态码为 400 Bad Request（非法参数）
     public Result<Void> handleIllegalArgumentException(IllegalArgumentException e) { // 处理非法参数异常的方法
-        log.error("非法参数异常：{}", e.getMessage()); // 使用日志记录器记录错误日志，输出非法参数的详细信息
+        log.warn("非法参数异常：{}", e.getMessage()); // 使用日志记录器记录警告日志，输出非法参数的详细信息
         return Result.error(400, e.getMessage()); // 返回统一的错误响应结果，错误码为 400，消息为异常详情
     }
 

@@ -22,9 +22,9 @@ public class OAuth2ClientProperties {
     private boolean autoRegister = true;
 
     /**
-     * 客户端列表（目前未使用，保留用于未来扩展）
+     * 默认客户端列表
      */
-    private List<ClientConfig> clients = new ArrayList<>();
+    private List<ClientConfig> defaults = new ArrayList<>();
 
     /**
      * 客户端配置

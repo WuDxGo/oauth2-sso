@@ -15,7 +15,7 @@ spring:
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3307/oauth2_sso?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://localhost:3306/oauth2_sso?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root
     password: root
 
@@ -38,7 +38,56 @@ spring:
 oauth2:
   clients:
     auto-register: true  # 是否启用自动注册
-    # 不在此处硬编码客户端列表，改为启动时检测数据库，如果为空则创建默认客户端
+    defaults:
+      - client-id: gateway-client
+        client-name: 网关客户端
+        client-secret: gateway-secret
+        authentication-methods: client_secret_basic
+        grant-types: password,authorization_code,refresh_token
+        redirect-uris: http://localhost:8081/login/oauth2/code/gateway-client
+        scopes: openid,profile,read,write
+        access-token-ttl: 7200
+        refresh-token-ttl: 604800
+        require-consent: false
+      - client-id: order-service
+        client-name: 订单服务
+        client-secret: order-secret
+        authentication-methods: client_secret_basic
+        grant-types: client_credentials
+        scopes: read,write
+        access-token-ttl: 7200
+        refresh-token-ttl: 604800
+        require-consent: true
+      - client-id: product-service
+        client-name: 商品服务
+        client-secret: product-secret
+        authentication-methods: client_secret_basic
+        grant-types: client_credentials
+        scopes: read,write
+        access-token-ttl: 7200
+        refresh-token-ttl: 604800
+        require-consent: true
+
+# CORS 配置
+cors:
+  allowed-origins:
+    - http://localhost:3000
+    - http://127.0.0.1:3000
+    - http://localhost:8081
+    - http://127.0.0.1:8081
+  allowed-methods:
+    - GET
+    - POST
+    - PUT
+    - DELETE
+    - OPTIONS
+  max-age: 3600
+
+# JWT 配置
+jwt:
+  issuer: ${OAUTH2_ISSUER:http://localhost:8080}
+  access-token-ttl: 7200  # 秒
+  refresh-token-ttl: 604800  # 秒
 
 mybatis:
   mapper-locations: classpath:mapper/*.xml

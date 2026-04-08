@@ -3,7 +3,7 @@ package com.example.oauth.server.entity; // 定义包路径，用于组织和管
 import lombok.Data; // 导入 Lombok 的 Data 注解，自动生成 getter、setter、toString 等方法
 
 import java.io.Serializable; // 导入 Serializable 接口，使对象可以被序列化，支持网络传输和持久化
-import java.util.Date; // 导入 Date 类，表示日期时间
+import java.time.LocalDateTime; // 导入 LocalDateTime 类，Java 8+ 新版日期时间 API
 
 /**
  * 用户实体类
@@ -72,11 +72,11 @@ public class User implements Serializable { // 定义用户实体类，实现 Se
      * 创建时间字段
      * 记录用户创建的时间
      */
-    private Date createTime; // 创建时间字段
+    private LocalDateTime createTime; // 创建时间字段
 
     /**
      * 更新时间字段
      * 记录用户信息最后更新的时间
      */
-    private Date updateTime; // 更新时间字段
+    private LocalDateTime updateTime; // 更新时间字段
 }
