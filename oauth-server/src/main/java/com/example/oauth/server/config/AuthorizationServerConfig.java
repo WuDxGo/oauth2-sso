@@ -103,19 +103,19 @@ public class AuthorizationServerConfig {
      */
     @Bean
     public JWKSource<SecurityContext> jwkSource(KeyPair keyPair) {
-        /** 获取公钥用于 JWK 构建 */
+        /* 获取公钥用于 JWK 构建 */
         RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
 
-        /** 获取私钥用于 JWK 构建（实际签名时使用） */
+        /* 获取私钥用于 JWK 构建（实际签名时使用） */
         RSAPrivateKey privateKey = (RSAPrivateKey) keyPair.getPrivate();
 
-        /** 构建 RSA JWK，包含公钥和私钥，并生成唯一标识符 */
+        /* 构建 RSA JWK，包含公钥和私钥，并生成唯一标识符 */
         RSAKey rsaKey = new RSAKey.Builder(publicKey)
                 .privateKey(privateKey)
                 .keyID(UUID.randomUUID().toString())
                 .build();
 
-        /** 将 JWK 包装为不可变集合，供 Spring Security 使用 */
+        /* 将 JWK 包装为不可变集合，供 Spring Security 使用 */
         JWKSet jwkSet = new JWKSet(rsaKey);
         return new ImmutableJWKSet<>(jwkSet);
     }
@@ -173,60 +173,60 @@ public class AuthorizationServerConfig {
     @Bean
     @Order(1)
     public SecurityFilterChain authorizationServerSecurityFilterChain(HttpSecurity http) throws Exception {
-        /** 配置此过滤链只匹配 OAuth2/OIDC 标准端点路径 */
+        /* 配置此过滤链只匹配 OAuth2/OIDC 标准端点路径 */
         http
             .securityMatcher(
-                "/oauth2/authorize",              /** 授权端点（授权码模式） */
-                "/oauth2/token",                   /** Token 端点（获取访问令牌） */
-                "/oauth2/jwks",                    /** JWK Set 端点（提供公钥） */
-                "/oauth2/revoke",                  /** Token 撤销端点 */
-                "/oauth2/introspect",              /** Token 内省端点（验证有效性） */
-                "/userinfo",                       /** 用户信息端点（OIDC） */
-                "/.well-known/openid-configuration" /** OIDC 发现端点 */
+                "/oauth2/authorize",              /* 授权端点（授权码模式） */
+                "/oauth2/token",                   /* Token 端点（获取访问令牌） */
+                "/oauth2/jwks",                    /* JWK Set 端点（提供公钥） */
+                "/oauth2/revoke",                  /* Token 撤销端点 */
+                "/oauth2/introspect",              /* Token 内省端点（验证有效性） */
+                "/userinfo",                       /* 用户信息端点（OIDC） */
+                "/.well-known/openid-configuration" /* OIDC 发现端点 */
             );
 
-        /** 创建 OAuth2 授权服务器配置器，使用默认配置 */
+        /* 创建 OAuth2 授权服务器配置器，使用默认配置 */
         OAuth2AuthorizationServerConfigurer authorizationServerConfigurer = new OAuth2AuthorizationServerConfigurer();
 
-        /** 逐步配置安全策略 */
+        /* 逐步配置安全策略 */
         http
-            /** 集成 OAuth2 授权服务器配置，启用所有 OAuth2/OIDC 端点 */
+            /* 集成 OAuth2 授权服务器配置，启用所有 OAuth2/OIDC 端点 */
             .with(authorizationServerConfigurer, Customizer.withDefaults())
 
-            /** 配置 HTTP 请求授权规则 */
+            /* 配置 HTTP 请求授权规则 */
             .authorizeHttpRequests(authorize -> authorize
-                /** 允许所有请求访问 Token、JWK Set、OIDC 发现端点（无需认证） */
+                /* 允许所有请求访问 Token、JWK Set、OIDC 发现端点（无需认证） */
                 .requestMatchers("/oauth2/token", "/oauth2/jwks", "/.well-known/openid-configuration").permitAll()
-                /** 其他所有 OAuth2 端点必须经过认证 */
+                /* 其他所有 OAuth2 端点必须经过认证 */
                 .anyRequest().authenticated()
             )
 
-            /** 配置表单登录功能，用于授权码模式的用户登录和授权同意 */
+            /* 配置表单登录功能，用于授权码模式的用户登录和授权同意 */
             .formLogin(form -> form
-                /** 指定自定义登录页面路径 */
+                /* 指定自定义登录页面路径 */
                 .loginPage("/login")
-                /** 指定登录请求处理路径 */
+                /* 指定登录请求处理路径 */
                 .loginProcessingUrl("/login")
-                /** 允许所有用户访问登录页面和登录接口 */
+                /* 允许所有用户访问登录页面和登录接口 */
                 .permitAll()
             )
 
-            /** 配置异常处理策略 */
+            /* 配置异常处理策略 */
             .exceptionHandling(exceptions -> exceptions
-                /** 对 HTML 请求（浏览器访问）配置重定向到登录页面 */
+                /* 对 HTML 请求（浏览器访问）配置重定向到登录页面 */
                 .defaultAuthenticationEntryPointFor(
-                    new LoginUrlAuthenticationEntryPoint("/login"), /** 登录页面重定向入口 */
-                    new MediaTypeRequestMatcher(MediaType.TEXT_HTML) /** 仅匹配 HTML 类型请求 */
+                    new LoginUrlAuthenticationEntryPoint("/login"), /* 登录页面重定向入口 */
+                    new MediaTypeRequestMatcher(MediaType.TEXT_HTML) /* 仅匹配 HTML 类型请求 */
                 )
             )
 
-            /** 配置 CSRF 防护策略 */
+            /* 配置 CSRF 防护策略 */
             .csrf(csrf -> csrf
-                /** 忽略表单登录接口的 CSRF 检查，防止登录失败 */
+                /* 忽略表单登录接口的 CSRF 检查，防止登录失败 */
                 .ignoringRequestMatchers("/api/login")
             );
 
-        /** 构建并返回安全过滤器链 */
+        /* 构建并返回安全过滤器链 */
         return http.build();
     }
 
@@ -239,7 +239,7 @@ public class AuthorizationServerConfig {
     @Bean
     public AuthorizationServerSettings authorizationServerSettings() {
         return AuthorizationServerSettings.builder()
-                /** 设置 JWT 颁发者 URL，必须与客户端配置的一致 */
+                /* 设置 JWT 颁发者 URL，必须与客户端配置的一致 */
                 .issuer(jwtProperties.getIssuer())
                 .build();
     }

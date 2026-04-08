@@ -71,11 +71,9 @@ public class AuthController {
     @Data
     public static class LoginResponse {
         /** JWT访问令牌字符串,客户端需保存并在后续请求中携带 */
-        private String access_token;
-        /** Token类型,固定值为"Bearer",表示持有者令牌 */
-        private String token_type = "Bearer";
+        private String accessToken;
         /** Token有效期,单位为秒,从Token颁发时间开始计算 */
-        private long expires_in;
+        private long expiresIn;
         /** Token授权范围,空格分隔的权限列表,用于控制访问权限 */
         private String scope;
 
@@ -88,9 +86,9 @@ public class AuthController {
          */
         public LoginResponse(String accessToken, long expiresIn) {
             // 设置JWT访问令牌
-            this.access_token = accessToken;
+            this.accessToken = accessToken;
             // 设置Token有效期
-            this.expires_in = expiresIn;
+            this.expiresIn = expiresIn;
             // 设置默认授权范围为"read write",表示读写权限
             this.scope = "read write";
         }
@@ -142,55 +140,6 @@ public class AuthController {
         String token = jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
 
         // 创建并返回登录响应对象,包含Token和有效期
-        return new LoginResponse(token, ttl);
-    }
-
-    /**
-     * OAuth2密码模式兼容的登录接口
-     * 支持标准OAuth2密码授权模式(Password Grant Type)
-     * 接收application/x-www-form-urlencoded格式的参数
-     * 适用于传统OAuth2客户端或需要兼容OAuth2标准的场景
-     *
-     * @param username 用户名,必填参数
-     * @param password 密码,必填参数
-     * @param grant_type 授权类型,默认为"password",符合OAuth2规范
-     * @param scope 授权范围,默认为"read write",可自定义
-     * @return 登录响应对象,包含JWT Token及相关元信息
-     */
-    @PostMapping("/oauth2/token")
-    public LoginResponse oauth2Login(@RequestParam String username,
-                                      @RequestParam String password,
-                                      @RequestParam(defaultValue = "password") String grant_type,
-                                      @RequestParam(defaultValue = "read write") String scope) {
-        // 步骤1:使用认证管理器验证用户名和密码的正确性
-        // 认证管理器会调用UserDetailsService加载用户信息并比对密码
-        Authentication authentication = authenticationManager.authenticate(
-            new UsernamePasswordAuthenticationToken(username, password)
-        );
-
-        // 步骤2:获取当前UTC时间戳,用于Token时间戳设置
-        Instant now = Instant.now();
-
-        // 从配置中获取Token的有效期(秒),如7200秒=2小时
-        long ttl = jwtProperties.getAccessTokenTtl();
-
-        // 计算Token过期时间戳 = 当前时间 + 有效期
-        Instant expiry = now.plus(ttl, ChronoUnit.SECONDS);
-
-        // 构建JWT Claims集合,定义Token的各项声明
-        JwtClaimsSet claims = JwtClaimsSet.builder()
-            .issuer(jwtProperties.getIssuer())      // 颁发者URL,标识Token由哪个服务签发
-            .issuedAt(now)                          // 颁发时间,Token的生效时间
-            .expiresAt(expiry)                      // 过期时间,Token的失效时间
-            .subject(authentication.getName())      // 主题字段,存储用户名或用户唯一标识
-            .claim("scope", scope)                  // 自定义scope声明,定义Token的权限范围
-            .build();                               // 构建不可变的Claims对象
-
-        // 使用JwtEncoder对Claims进行签名生成JWT Token
-        // 签名算法由配置决定,通常使用RS256非对称加密
-        String token = jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
-
-        // 构建并返回登录响应,客户端获得Token后可用于后续请求认证
         return new LoginResponse(token, ttl);
     }
 
