@@ -1,6 +1,27 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { UserInfo } from '@/api/auth'
+
+// 角色信息接口
+export interface RoleInfo {
+  id: number
+  code: string
+  name: string
+  description: string
+}
+
+// 用户信息接口
+export interface UserInfo {
+  id: number
+  username: string
+  nickname: string
+  email?: string
+  phone?: string
+  avatar?: string
+  gender?: number
+  status?: number
+  roles?: RoleInfo[]
+  authorities?: string[]
+}
 
 const ACCESS_TOKEN_KEY = 'access_token'
 const TOKEN_TYPE_KEY = 'token_type'

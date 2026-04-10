@@ -8,6 +8,7 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.SecurityFilterChain;
@@ -28,9 +29,11 @@ import java.util.List;
 public class DefaultSecurityConfig {
 
     private final CorsProperties corsProperties;
+    private final JwtDecoder jwtDecoder;
 
-    public DefaultSecurityConfig(CorsProperties corsProperties) {
+    public DefaultSecurityConfig(CorsProperties corsProperties, JwtDecoder jwtDecoder) {
         this.corsProperties = corsProperties;
+        this.jwtDecoder = jwtDecoder;
     }
 
     @Bean
@@ -38,11 +41,11 @@ public class DefaultSecurityConfig {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/oauth2/**", "/token", "/login", "/api/**", "/oauth2/token", "/api/login")
+                        .ignoringRequestMatchers("/oauth2/**", "/login", "/api/**", "/api/login")
                 )
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico").permitAll()
-                        .requestMatchers("/login", "/logout", "/error", "/oauth2/**", "/token", "/oauth2/token", "/api/login").permitAll()
+                        .requestMatchers("/login", "/logout", "/error", "/oauth2/**", "/api/login").permitAll()
                         // /api/users/me 需要认证（支持 JWT Bearer Token）
                         .requestMatchers("/api/users/me").authenticated()
                         .requestMatchers("/api/**").permitAll()
@@ -57,8 +60,15 @@ public class DefaultSecurityConfig {
                 // 启用 OAuth2 资源服务器（JWT 验证）
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt
+                                .decoder(jwtDecoder)
                                 .jwtAuthenticationConverter(jwtAuthenticationConverter())
                         )
+                        // 配置未认证时的异常处理，返回 401 JSON 响应
+                        .authenticationEntryPoint((request, response, authException) -> {
+                            response.setStatus(401);
+                            response.setContentType("application/json;charset=UTF-8");
+                            response.getWriter().write("{\"error\":\"unauthorized\",\"message\":\"未认证，请先登录\"}");
+                        })
                 )
                 .logout(logout -> logout
                         .logoutUrl("/logout")
@@ -82,8 +92,8 @@ public class DefaultSecurityConfig {
     @Bean
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter grantedAuthoritiesConverter = new JwtGrantedAuthoritiesConverter();
-        grantedAuthoritiesConverter.setAuthorityPrefix("ROLE_");
-        grantedAuthoritiesConverter.setAuthoritiesClaimName("authorities");
+        grantedAuthoritiesConverter.setAuthorityPrefix("");  // 不添加前缀，因为 scope 中已经是纯权限了
+        grantedAuthoritiesConverter.setAuthoritiesClaimName("scope");  // 使用 scope 字段作为权限来源
 
         JwtAuthenticationConverter jwtAuthenticationConverter = new JwtAuthenticationConverter();
         jwtAuthenticationConverter.setJwtGrantedAuthoritiesConverter(grantedAuthoritiesConverter);

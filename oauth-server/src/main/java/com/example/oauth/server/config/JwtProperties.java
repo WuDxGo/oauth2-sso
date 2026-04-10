@@ -41,7 +41,6 @@ public class JwtProperties {
      * 单位为秒,定义刷新令牌从颁发到失效的时间跨度
      * 默认值为604800秒(即7天),允许用户在一周内无需重新登录
      * 刷新令牌用于在访问令牌过期后获取新的访问令牌
-     * 客户端可调用/oauth2/token接口传入refresh_token获取新令牌
      * 过期后用户必须重新输入账号密码进行完整登录流程
      * 对应yml中的jwt.refresh-token-ttl配置项
      */

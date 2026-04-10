@@ -105,14 +105,31 @@ const handleLogin = async () => {
       }
       
       const tokenData = await response.json()
-      authStore.setToken(tokenData.access_token, tokenData.token_type, tokenData.expires_in)
+      console.log('登录响应:', tokenData)
+
+      // 后端返回的字段是 accessToken（驼峰），不是 access_token
+      const token = tokenData.accessToken || tokenData.access_token
+      const expiresIn = tokenData.expiresIn || tokenData.expires_in || 7200
+      const tokenType = tokenData.tokenType || tokenData.token_type || 'Bearer'
+
+      if (!token) {
+        console.error('登录响应缺少 token:', tokenData)
+        throw new Error('登录响应格式错误')
+      }
+
+      authStore.setToken(token, tokenType, expiresIn)
+
+      // 验证 Token 是否保存成功
+      console.log('Token 已保存:', authStore.accessToken)
 
       // 获取用户信息
       const userInfoResponse = await fetch('/api/users/me', {
         headers: {
-          'Authorization': `Bearer ${tokenData.access_token}`
+          'Authorization': `Bearer ${authStore.accessToken}`
         }
       })
+      
+      console.log('用户信息响应状态:', userInfoResponse.status)
 
       if (!userInfoResponse.ok) {
         const errText = await userInfoResponse.text()

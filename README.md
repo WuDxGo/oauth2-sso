@@ -84,19 +84,6 @@ GET http://localhost:8080/oauth2/authorize
 &state={state}
 ```
 
-### Token 端点
-
-```
-POST http://localhost:8080/oauth2/token
-Content-Type: application/x-www-form-urlencoded
-
-grant_type=password
-&username=admin
-&password=123456
-&client_id={client_id}
-&client_secret={client_secret}
-```
-
 ### 认证接口（前端登录用）
 
 ```bash

@@ -26,7 +26,6 @@ import org.springframework.security.web.util.matcher.MediaTypeRequestMatcher;
 import java.security.KeyPair;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
-import java.util.UUID;
 
 /**
  * OAuth2 认证服务器配置类
@@ -109,10 +108,10 @@ public class AuthorizationServerConfig {
         /* 获取私钥用于 JWK 构建（实际签名时使用） */
         RSAPrivateKey privateKey = (RSAPrivateKey) keyPair.getPrivate();
 
-        /* 构建 RSA JWK，包含公钥和私钥，并生成唯一标识符 */
+        /* 构建 RSA JWK，包含公钥和私钥，使用固定的 key ID */
         RSAKey rsaKey = new RSAKey.Builder(publicKey)
                 .privateKey(privateKey)
-                .keyID(UUID.randomUUID().toString())
+                .keyID("oauth-sso-key")
                 .build();
 
         /* 将 JWK 包装为不可变集合，供 Spring Security 使用 */
@@ -123,15 +122,17 @@ public class AuthorizationServerConfig {
     /**
      * JWT 解码器 Bean
      * 用于验证和解码传入的 JWT Token
-     * 只使用公钥进行验证，不涉及私钥
+     * 使用 JWKSource 构建，确保 key ID 与编码器一致
      *
      * @param keyPair RSA 密钥对
      * @return JWT 解码器
      */
     @Bean
+    @Primary
     public JwtDecoder jwtDecoder(KeyPair keyPair) {
+        RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
         return org.springframework.security.oauth2.jwt.NimbusJwtDecoder
-                .withPublicKey((RSAPublicKey) keyPair.getPublic())
+                .withPublicKey(publicKey)
                 .build();
     }
 
@@ -177,7 +178,6 @@ public class AuthorizationServerConfig {
         http
             .securityMatcher(
                 "/oauth2/authorize",              /* 授权端点（授权码模式） */
-                "/oauth2/token",                   /* Token 端点（获取访问令牌） */
                 "/oauth2/jwks",                    /* JWK Set 端点（提供公钥） */
                 "/oauth2/revoke",                  /* Token 撤销端点 */
                 "/oauth2/introspect",              /* Token 内省端点（验证有效性） */
@@ -195,8 +195,8 @@ public class AuthorizationServerConfig {
 
             /* 配置 HTTP 请求授权规则 */
             .authorizeHttpRequests(authorize -> authorize
-                /* 允许所有请求访问 Token、JWK Set、OIDC 发现端点（无需认证） */
-                .requestMatchers("/oauth2/token", "/oauth2/jwks", "/.well-known/openid-configuration").permitAll()
+                /* 允许所有请求访问 JWK Set、OIDC 发现端点（无需认证） */
+                .requestMatchers("/oauth2/jwks", "/.well-known/openid-configuration").permitAll()
                 /* 其他所有 OAuth2 端点必须经过认证 */
                 .anyRequest().authenticated()
             )

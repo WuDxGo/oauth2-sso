@@ -19,21 +19,6 @@ spring:
     username: root
     password: root
 
-  data:
-    redis:
-      host: localhost
-      port: 6379
-      database: 0
-      timeout: 5000ms
-
-  security:
-    oauth2:
-      authorization-server:
-        issuer: http://localhost:8080
-      resourceserver:
-        jwt:
-          jwk-set-uri: http://localhost:8080/oauth2/jwks
-
 # OAuth2 配置
 oauth2:
   # 密钥存储路径
@@ -104,4 +89,4 @@ logging:
   level:
     root: INFO
     com.example.oauth.server: DEBUG
-    org.springframework.security: INFO
+    org.springframework.security: DEBUG
